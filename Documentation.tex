@@ -1,0 +1,115 @@
+% -*- latex -*-
+
+\section{Package Structure}
+\label{sec:PackageStructure}
+
+\fix{-dax, cont, exec, worklet, math} \\
+\fix{-cuda, openmp, tbb} \\
+\fix{-internal}
+
+
+\section{Basic Provisions}
+\label{sec:BasicProvisions}
+
+\subsection{Core Data Types}
+\label{sec:CoreDataTypes}
+
+\fix{-dax::Id, dax::Scalar} \\
+\fix{-dax::Id2, dax::Id3, dax::Vector2, dax::Vector3, dax::Vector4} \\
+\fix{--Supported operators} \\
+\fix{-dax::Tuple<>} \\
+\fix{-dax::Pair<>}
+
+\subsection{Function and Method Exports}
+\label{sec:FunctionAndMethodExports}
+
+\fix{Write}
+
+\subsection{Traits}
+\label{sec:Traits}
+
+\fix{-type traits} \\
+\fix{-vector traits} \\
+\fix{-vector operations}
+
+
+\section{Provided Worklets}
+\label{sec:ProvidedWorklets}
+
+\fix{Algorithm implementations provided by Dax.}
+
+\fix{The tools provided to build new worklets, which is designed to be a
+  simple process, are documented in
+  Section~\ref{sec:ExecutionEnvironment}.}
+
+
+\section{Control Environment}
+\label{sec:ControlEnvironment}
+
+\subsection{Device Adapter Tag}
+\label{sec:DeviceAdapterTag}
+
+\fix{Write}
+
+\subsection{Array Handle}
+\label{sec:ArrayHandle}
+
+\fix{--Using} \\
+\fix{--Interface to device} \\
+\fix{---Prepare\textasteriskcentered} \\
+\fix{--Containers} \\
+\fix{---Basic} \\
+\fix{---Adapting data structures} \\
+\fix{---Implicit/derived} \\
+\fix{---Transfer} \\
+
+\subsection{Grid Structures}
+\label{sec:GridStructures}
+
+\fix{Uniform Grid, Unstructured Grid}
+
+\subsection{Scheduling}
+\label{sec:Scheduling}
+
+\fix{Will the scheduler classes be changed in time?}
+
+\subsection{Timers}
+\label{sec:Timers}
+
+\fix{Write}
+
+\subsection{Device Adapter Algorithms}
+\label{sec:DeviceAdapterAlgorithms}
+
+\subsubsection{Available Algorithms}
+
+\fix{Write}
+
+\subsubsection{Implementing Device Adapters}
+
+\fix{Also talk about generic device adapter.}
+
+\fix{What about implementing execution memory management?}
+
+
+\section{Execution Environment}
+\label{sec:ExecutionEnvironment}
+
+\subsection{Creating Worklets}
+\label{sec:CreatingWorklets}
+
+\fix{-Base Classes}\\
+\fix{-operator()} \\
+\fix{-signatures}
+
+\subsection{Math}
+\label{sec:Math}
+
+\fix{Portable math functions}
+
+\subsection{Cells and Operations}
+
+\fix{-tags} \\
+\fix{-dax::exec::CellVertices} \\
+\fix{-dax::exec::CellField} \\
+\fix{-cell operations}

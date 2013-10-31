@@ -11,6 +11,12 @@ set(images
   )
 
 set(input_docs
+  Summary.tex
+  Introduction.tex
+  Overview.tex
+  Documentation.tex
+  ProgressReport.tex
+  Distribution.tex
   )
 
 add_latex_document(DaxReport2013.tex

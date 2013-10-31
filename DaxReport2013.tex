@@ -1,0 +1,134 @@
+% -*- latex -*-
+%
+% The SAND document class is maintained at:
+%
+%    http://www.cs.sandia.gov/SANDreport/sandHome.html
+%
+% This page also as instructions and documentation on commands.
+%
+\documentclass[12pt,report]{SANDreport}
+
+\SANDnum{SAND2013-xxxx}
+\SANDprintDate{December 2013}
+
+\title{A Pervasive Parallel Framework for Visualization: Final Report for
+  FWP~10-014707}
+\author{Kenneth~Moreland}
+\SANDauthor{Kenneth~Moreland}
+\date{} % Leave empty
+
+
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{varioref}
+\usepackage{fancyvrb}
+\usepackage{ifthen}
+\usepackage{cite}
+\usepackage{subfig}
+\usepackage{xspace}
+\usepackage[pdfborder={0 0 0}]{hyperref}
+\usepackage{verbatim}
+
+\usepackage{color}
+\definecolor{yellow}{rgb}{1,1,0}
+\definecolor{black}{rgb}{0,0,0}
+\definecolor{ltcyan}{rgb}{.75,1,1}
+\definecolor{red}{rgb}{1,0,0}
+\definecolor{gray}{rgb}{.6,.6,.6}
+\definecolor{darkred}{rgb}{0.5,0,0}
+\definecolor{darkgreen}{rgb}{0,0.5,0}
+
+% Cite commands I use to abstract away the different ways to reference an
+% entry in the bibliography (superscripts, numbers, dates, or author
+% abbreviations).  \scite is a short cite that is used immediately after
+% when the authors are mentioned.  \lcite is a full citation that is used
+% anywhere.  Both should be used right next to the text being cited without
+% any spacing.
+\newcommand*{\lcite}[1]{~\cite{#1}}
+\newcommand*{\scite}[1]{~\cite{#1}}
+
+\newcommand{\etal}{et al.}
+
+\newcommand*{\keyterm}[1]{\emph{#1}}
+
+\newcommand{\fix}[1]{{\color{red}\textsc{[#1]}}}
+
+% Avoid putting figures on their own page.
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+
+% Make sure this is big enough so that only big figures end up on their own
+% page but small enough so that if a figure does have to be on its own
+% page, it won't push everything to the bottom because it's not big enough
+% to have its own page.
+\renewcommand{\floatpagefraction}{.75}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  \fix{Add abstract}
+\end{abstract}
+
+\clearpage
+
+\chapter*{Acknowledgement}
+
+\fix{Add thanks and funding statements.}
+
+\cleardoublepage % TOC should start on an odd page
+\tableofcontents
+\listoffigures
+\listoftables
+
+\clearpage
+
+\chapter*{Executive Summary}
+\addcontentsline{toc}{chapter}{Executive Summary}
+
+\fix{Write this.}
+
+\SANDmain % Start the main part of the document.
+
+\chapter{Introduction}
+\label{chap:Introduction}
+
+\fix{High level description of Dax and description of document structure.}
+
+\chapter{Overview of Dax Toolkit}
+\label{chap:Overview}
+
+\fix{Write this.}
+
+\chapter{Dax Toolkit Documentation}
+\label{chap:Documentation}
+
+\fix{Write this.}
+
+\chapter{Progress Report}
+\label{chap:ProgressReport}
+
+\fix{Write this.}
+
+\clearpage
+
+\providecommand*{\phantomsection}{}
+\phantomsection
+\addcontentsline{toc}{chapter}{References}
+\bibliographystyle{plain}
+\bibliography{}
+
+\begin{SANDdistribution}[NM]
+  \SANDdistExternal{1}{person\\street\\city, state}
+
+  \bigskip
+
+  \SANDdistInternal{2}{1326}{Kenneth Moreland}{1461}
+\end{SANDdistribution}
+
+\end{document}

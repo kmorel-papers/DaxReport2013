@@ -41,6 +41,27 @@
 \definecolor{darkred}{rgb}{0.5,0,0}
 \definecolor{darkgreen}{rgb}{0,0.5,0}
 
+\usepackage{listings}
+\lstloadlanguages{C,C++}
+\lstset{fontadjust=false,basicstyle=\scriptsize\ttfamily}
+%% \lstset{numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=2pt}
+\lstdefinelanguage{Dax}{
+  morekeywords={struct,class,public,typedef, void, template, return, operator, const, for, int},
+  morekeywords={[2]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT,
+                   _1,_2,_3,_4, In, Out, Point, Field, Topology,
+                   Id, Id3, Tuple, Vector2,Vector3,Vector4,
+                   WorkletMapField, WorkletMapCell,
+                   ParametricCoordinates, CellDerivative},
+  morekeywords={[3]dax,exec,cont,math},
+  morekeywords={[4]ControlSignature, ExecutionSignature}
+}
+\lstset{language=Dax}
+\lstset{
+  keywordstyle=[2]\color{blue},
+  keywordstyle=[3]\color{darkred},
+  keywordstyle=[4]\color{darkgreen}
+}
+
 % Cite commands I use to abstract away the different ways to reference an
 % entry in the bibliography (superscripts, numbers, dates, or author
 % abbreviations).  \scite is a short cite that is used immediately after

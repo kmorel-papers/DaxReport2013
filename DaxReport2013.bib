@@ -2,12 +2,62 @@
 %% http://bibdesk.sourceforge.net/
 
 
-%% Created for kmorel at 2013-11-05 17:28:33 -0700 
+%% Created for kmorel at 2013-11-06 16:15:05 -0700 
 
 
 %% Saved with string encoding Unicode (UTF-8) 
 
 
+
+@inbook{Thrust,
+	Annote = {A portable STL-like template library for use on multi- and many-core systems.},
+	Author = {Nathan Bell and Jared Hoberock},
+	Chapter = {Thrust: A Productivity-Oriented Library for {CUDA}},
+	Date-Added = {2013-11-06 23:15:03 +0000},
+	Date-Modified = {2013-11-06 23:15:03 +0000},
+	Month = {October},
+	Pages = {359--371},
+	Publisher = {Morgan Kaufmann},
+	Title = {GPU Computing Gems, Jade Edition},
+	Year = {2011}}
+
+@techreport{PISTON,
+	Abstract = {Due to the wide variety of current and next-generation supercomputing architectures, the development of highperformance parallel visualization and analysis operators frequently requires re-writing the underlying algorithms for many different platforms. In order to facilitate portability, we have devised a framework for creating such operators that employs the data-parallel programming model. By writing the operators using only data-parallel primitives (such as scans, transforms, stream compactions, etc.), the same code may be compiled to multiple targets using architecture-specific backend implementations of these primitives. Specifically, we make use of and extend NVIDIA's Thrust library, which provides CUDA and OpenMP backends. Using this framework, we have implemented isosurface, cut surface, and threshold operators, and have achieved good parallel performance on two different architectures (multi-core CPUs and NVIDIA GPUs) using the exact same operator code. We have applied these operators to several large, real scientific data sets, and have open-source released a beta version of our code base.},
+	Annote = {A library providing portable implementations of visualization algorithms on multi- and many-core processors.  Uses Thrust to implement algorithms and portability.  Compares marching cubes isosurface generation to existing implementations by NVIDIA and VTK.
+
+I believe this was presented at EGPGV 2012 and when it becomes available in the proceedings this reference should be updated.
+},
+	Author = {Li-Ta Lo and Chris Sewell and James Ahrens},
+	Date-Added = {2013-11-06 23:14:02 +0000},
+	Date-Modified = {2013-11-06 23:14:02 +0000},
+	Institution = {Los Alamos National Laboratory},
+	Number = {LA-UR-12-10227},
+	Title = {{PISTON}: A Portable Cross-Platform Framework for Data-Parallel Visualization Operators},
+	Year = {2012},
+	Bdsk-Url-1 = {http://viz.lanl.gov/projects/PISTON.html}}
+
+@book{Blelloch1990,
+	Abstract = {Vector Models for Data-Parallel Computing describes a model of parallelism that extends and formalizes the Data-Parallel model on which the Connection Machine and other supercomputers are based. It presents many algorithms based on the model, ranging from graph algorithms to numerical algorithms, and argues that data-parallel models are not only practical and can be applied to a surprisingly wide variety of problems, they are also well suited for very-high-level languages and lead to a concise and clear description of algorithms and their complexity. Many of the author's ideas have been incorporated into the instruction set and into algorithms currently running on the Connection Machine.
+
+The book includes the definition of a parallel vector machine; an extensive description of the uses of the scan (also called parallel-prefix) operations; the introduction of segmented vector operations; parallel data structures for trees, graphs, and grids; many parallel computational-geometry, graph, numerical and sorting algorithms; techniques for compiling nested parallelism; a compiler for Paralation Lisp; and details on the implementation of the scan operations.},
+	Annote = {Seminal work on using scans and other basic parallel algorithms to build more specific data-parallel algorithms.},
+	Author = {Guy E. Blelloch},
+	Date-Added = {2013-11-06 23:13:19 +0000},
+	Date-Modified = {2013-11-06 23:13:19 +0000},
+	Note = {{ISBN}~0-262-02313-X},
+	Publisher = {MIT Press},
+	Title = {Vector Models for Data-Parallel Computing},
+	Year = {1990}}
+
+@book{CUDA,
+	Annote = {A book describing how to use CUDA including a lot of practical advice.},
+	Author = {Jason Sanders and Edward Kandrot},
+	Date-Added = {2013-11-06 22:29:46 +0000},
+	Date-Modified = {2013-11-06 22:30:01 +0000},
+	Note = {{ISBN}~978-0-13-138768-3},
+	Publisher = {Addison Wesley},
+	Title = {{CUDA} by Example},
+	Year = {2011}}
 
 @inproceedings{Baker2010,
 	Abstract = {Multicore nodes have become ubiquitous in just a few years. At the same time, writing portable parallel software for multicore nodes is extremely challenging. Widely available programming models such as OpenMP and Pthreads are not useful for devices such as graphics cards, and more flexible programming models such as RapidMind are only available commercially. OpenCL represents the first truly portable standard, but its availability is limited. In the presence of such transition, we have developed a minimal application programming interface (API) for multicore nodes that allows us to write portable parallel linear algebra software that can use any of the aforementioned programming models and any future standard models. We utilize C++ template meta-programming to enable users to write parallel kernels that can be executed on a variety of node types, including Cell, GPUs and multicore CPUs. The support for a parallel node is provided by implementing a Node object, according to the requirements specified by the API. This ability to provide custom support for particular node types gives developers a level of control not allowed by the current slate of proprietary parallel programming APIs. We demonstrate implementations of the API for a simple vector dot-product on sequential CPU, multicore CPU and GPU nodes.},

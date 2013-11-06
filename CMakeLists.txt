@@ -8,6 +8,7 @@ set(images
   SANDimages/DOEbwlogo.pdf
   SANDimages/snllineblk.pdf
   SANDimages/SANDbackground.png
+  images/DaxDiagram.pdf
   )
 
 set(input_docs

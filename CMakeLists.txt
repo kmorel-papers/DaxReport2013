@@ -22,4 +22,6 @@ set(input_docs
 add_latex_document(DaxReport2013.tex
   INPUTS ${input_docs}
   IMAGES ${images}
+  BIBFILES DaxReport2013.bib
+  USE_INDEX
   )

@@ -29,6 +29,10 @@
 \usepackage{cite}
 \usepackage{subfig}
 \usepackage{xspace}
+
+\usepackage{makeidx}
+\makeindex
+
 \usepackage[pdfborder={0 0 0}]{hyperref}
 \usepackage{verbatim}
 
@@ -142,7 +146,16 @@
 \phantomsection
 \addcontentsline{toc}{chapter}{References}
 \bibliographystyle{plain}
-\bibliography{}
+\bibliography{DaxReport2013}
+
+\begin{flushleft}
+  \clearpage
+  \lhead[]{}
+  \rhead[]{}
+  \phantomsection
+  \addcontentsline{toc}{chapter}{Index}
+  \printindex
+\end{flushleft}
 
 \input{Distribution}
 

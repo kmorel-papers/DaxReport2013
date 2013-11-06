@@ -1,17 +1,69 @@
 % -*- latex -*-
 
+The Dax Toolkit is built to develop a readiness for scientific data
+analysis and visualizaiton at extreme scale. In particular, we address the
+challenges of emerging multi- and many-core architectures. To achieve this
+readiness, our project has three overarching goals.
+
+\begin{itemize}
+\item Create a toolkit that is well suited to the design of visualization
+  operations with a great number of shared memory threads.
+\item Develop a framework that adapts to emerging processor and compiler
+  technologies.
+\item Design multi-purpose algorithms that can be applied to a variety of
+  visualization operations.
+\end{itemize}
+
+This chapter provides the broad design and high-level features of the Dax
+Toolkit that makes these goals a reality.
+
 \section{General Approach}
 \label{sec:GeneralApproach}
 
-\fix{-Philosophy of algorithm design}
+The Dax toolkit is designed to provide a \keyterm{pervasive parallelism}
+\index{pervasive~parallelism} throughout all its visualization algorithms,
+meaning that the algorithm is designed to operate with independent
+concurrency at the finest possible level throughout. The Dax Toolkit
+provides this pervasive parallelism by providing a programming constructs
+called a \keyterm{worklet}, \index{worklet} which operates on a very fine
+granularity of data.  The worklets are designed as serial components, and
+the Dax toolkit handles whatever layers of concurrency are necessary,
+thereby removing the onus from the visualization algorithm developer.
 
-\fix{--Characterize algorithms by local operations}
+A worklet is essentially a small functor \index{functor} or kernel
+\index{kernel} designed to operate on a small element of data. (The name
+``worklet'' means a small amount of work. We mean small in this sense to be
+the amount of data, not necessarily the amount of instructions performed.)
+The worklet is constrained to contain a serial and stateless
+function. These constraints form three critical purposes. First, the
+constraints on the worklets allow the Dax Toolkit to schedule worklet
+invocations on a great many independent concurrent threads and thereby
+making the algorithm pervasively parallel. Second, the constraints allow
+the Dax Toolkit to provide thread safety. By controlling the memory access
+the toolkit can insure that no worklet will have any memory collisions,
+false sharing, or other parallel programming pitfalls. Third, the
+constraints encourage good programming practices. The worklet model
+provides a natural approach to visualization algorithm design that also has
+good general performance characteristics.
 
-\fix{--Safely encapsulate algorithms in ``worklets''}
+This approach mirrors that of Baker \etal\scite{Baker2010}.  Both
+approaches use C++ templating to generically apply functors in parallel to
+vectors of data.  Where the Dax Toolkit significantly differs from that of
+Baker's is in that we are more focused on the computational geometry
+problems related to scientific visualization and data analysis. Where Baker
+provides a simple mapping mechanism onto a vector, our system is designed
+to provide a variety of parallel scheduling operations.  These result in
+worklet types that get scheduled in different ways.  Each worklet type has
+a different set of capabilities. The types of worklets and their functions
+is documented in Section~\ref{sec:CreatingWorklets}. These, along with
+customized scheduling operations, provide reusable communicative operations
+that can be applied to many visualization algorithms.
 
-\fix{---Better programming through constraints}
-
-\fix{--Make resuable components for ``communicative'' operations}
+Worklets also provide additional functionality beyond the typical functor
+by having flexibility in their call structure. Worklets are self describing
+in that they provide signatures \index{signature} specifying the type and
+meaning of input and output arguments. This functionality is described in
+Section~\ref{sec:GenericScheduling}.
 
 
 \section{Structure of Dax Framework}

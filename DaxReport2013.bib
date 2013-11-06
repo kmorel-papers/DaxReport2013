@@ -1,0 +1,25 @@
+%% This BibTeX bibliography file was created using BibDesk.
+%% http://bibdesk.sourceforge.net/
+
+
+%% Created for kmorel at 2013-11-05 17:28:33 -0700 
+
+
+%% Saved with string encoding Unicode (UTF-8) 
+
+
+
+@inproceedings{Baker2010,
+	Abstract = {Multicore nodes have become ubiquitous in just a few years. At the same time, writing portable parallel software for multicore nodes is extremely challenging. Widely available programming models such as OpenMP and Pthreads are not useful for devices such as graphics cards, and more flexible programming models such as RapidMind are only available commercially. OpenCL represents the first truly portable standard, but its availability is limited. In the presence of such transition, we have developed a minimal application programming interface (API) for multicore nodes that allows us to write portable parallel linear algebra software that can use any of the aforementioned programming models and any future standard models. We utilize C++ template meta-programming to enable users to write parallel kernels that can be executed on a variety of node types, including Cell, GPUs and multicore CPUs. The support for a parallel node is provided by implementing a Node object, according to the requirements specified by the API. This ability to provide custom support for particular node types gives developers a level of control not allowed by the current slate of proprietary parallel programming APIs. We demonstrate implementations of the API for a simple vector dot-product on sequential CPU, multicore CPU and GPU nodes.},
+	Annote = {This is a paper from Mike Heroux and gang about the multi-core parallel technique using functors.  It makes for a vary portable system parallel system and this is demonstrated on intel threaded building blocks (TBB) and CUDA.},
+	Author = {Christopher G. Baker and Michael A. Heroux and H. Carter Edwards and Alan B. Williams},
+	Booktitle = {Proceedings of the 18th Euromicro International Conference on Parallel, Distributed and Network-Based Processing (PDP)},
+	Date-Added = {2013-11-06 00:28:30 +0000},
+	Date-Modified = {2013-11-06 00:28:30 +0000},
+	Month = {February},
+	Note = {{DOI}~10.1109/PDP.2010.49},
+	Pages = {601--606},
+	Title = {A Light-weight {API} for Portable Multicore Programming},
+	Year = {2010},
+	Bdsk-Url-1 = {http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=5452412},
+	Bdsk-Url-2 = {http://dx.doi.org/10.1109/PDP.2010.49}}

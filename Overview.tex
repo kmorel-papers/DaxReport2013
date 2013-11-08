@@ -192,9 +192,65 @@ throughout Chapter~\ref{chap:Documentation}.
 \section{Generic Memory Structures}
 \label{sec:GenericMemoryStructures}
 
-\fix{Generic array handle section of PDAC2012 paper.}
+\index{array~handle|(}
 
-\fix{Reference to Section~\ref{sec:ArrayHandle}.}
+The basic data container in the Dax toolkit is an \keyterm{array
+  handle}. The array handle acts like a smart pointer to the data to manage
+its resource usage. Array handle objects maintain a reference count of how
+many instances point to the same array, which allows the array handle to
+release resources automatically once all references leave scope.
+
+Array handle objects can also allocate and de-allocate data as
+necessary. For example, when an array handle is used to store the output of
+an algorithm, Dax will automatically allocate data in the array to store
+the appropriate amount of data.
+
+Although the array handle interface is available exclusively in the control
+environment, an array handle object manages data in botht he control and
+execution environment. This is done using the data transfer module of the
+device adapter. \index{device~adapter} As described in
+Section~\ref{sec:DeviceIndependence}, if the control and execution
+environments can share memory, then this data is not physically copied but
+rather shared. The array handle also maintains where data resides to avoid
+unnecessary copies. That is, if data is needed in the execution environment
+and is already available in the execution environment, no copy will be
+made. To help applications manage limited memory, the array handle allows
+applications to free memory either in the execution environment or both
+environments.
+
+In addition to adapting to various device memory spaces with the device
+adapter, the array handle can also adapt to memory layout in the control
+application. This is an important technique when applying Dax algorithms to
+data defined in other library spaces. For example, some systems may define
+an array of coordinates as a single array with each entry containing 3
+coordinates (an array of structures) whereas another might define the same
+data with three arrays, each containing a single coordinate (a structure of
+arrays). Rather than copy this data tot some canonical structure, the array
+handle uses generic access to adapt to any layout.
+
+\index{container!see{array~container}}
+
+This generic access is achived through a \keyterm{container}
+\index{array~container} object. The container provides an encapsulated
+interface around the data so that any necessary strides or offsets may be
+handled internally.
+
+\fix{Figure for containers?}
+
+One interesting consequence of using a generic container object to manage
+data within an array handle is that the container can be defined
+functionally rather than point to data stored in physical memory. Thus,
+implicit array handles are easily created by adapting to functional
+containers. For example, the point coordinates of a uniform rectilinear
+grid are implicit based on the topological position of the point. Thus, the
+point coordinates for uniform rectilinear grids can be implemented as an
+implicit array with the same interface as explicit arrays (where
+unstructured grid points would be stored).
+
+The implementation and use of array handles and array containers are
+discussed in Section~\ref{sec:ArrayHandle}.
+
+\index{array~handle|)}
 
 \section{Generic Scheduling}
 \label{sec:GenericScheduling}

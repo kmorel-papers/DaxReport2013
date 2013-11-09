@@ -1,11 +1,139 @@
 % -*- latex -*-
 
+This chapter documents the implementation and API of the Dax toolkit. This
+documentation is primarily in reference to users of the Dax toolkit but
+also gives some details on the internal implementation.
+
+The Dax toolkit is written in C++ and makes extensive use of templates. The
+toolkit is implemented as a header library, meaning that all the code is
+implemented in header files (with extension \textfilename{.h}) and
+completely included in any code that uses it. This is typically necessary
+of template libraries, which need to be compiled with template parameters
+that are not known until they are used. This also provides the convienience
+of allowing the compiler to inline user code for better performance.
+
+When documenting the Dax API, the following conventions are used.
+\begin{itemize}
+\item Filenames are printed in a \textfilename{sans serif font}.
+\item C++ code is printed in a \textcode{monospace font}.
+\item Macros and namespaces from the Dax toolkit are printed
+  in \textnamespace{red}.
+\item Identifiers from the Dax toolkit are printed in
+  \textidentifier{blue}.
+\item Signatures, described in Section~\ref{sec:GenericScheduling}, are
+  printed in \textsignature{green}.
+\end{itemize}
+
 \section{Package Structure}
 \label{sec:PackageStructure}
 
-\fix{-dax, cont, exec, worklet, math} \\
-\fix{-cuda, openmp, tbb} \\
-\fix{-internal}
+\index{packages|seealso{namespace}}
+\index{packages|(}
+
+The Dax toolkit is organized in a hierarchy of nested packages. The Dax
+toolkit places definitions in \keyterm{namespaces} \index{namespace} that
+correspond to the package (with the exception that one package may
+specialized a template defined in a different namespace). Hence, the
+description and
+
+The base package is named \dax{}. All classes within the Dax toolkit are
+placed either directly in the \dax{} package or in a package beneath
+it. This helps prevent name collisions between the Dax toolkit and any
+other library.
+
+As described in Section~\ref{sec:StructureOfDaxFramework}, the Dax API is
+divided into two distinct environments: \index{environments} the control
+environment \index{control~environment} and the execution
+environment. \index{execution~environment} The API for these two
+environments are located in the \daxcont{} and \daxexec{} packages,
+respectively. Items located in the base \dax{} namespace are available in
+both environments.
+
+Although it is conventional to spell out names in identifiers (see the
+coding conventions in Section~\ref{sec:CodingConventions}), there is an
+exception to abbreviate control and execution to \textnamespace{cont}
+and \textnamespace{exec}, respectively. This is because it is also part of
+the coding convention to declare the entire namespace when using an
+identifier that is part of the corresponding package. The shorter names
+make the identifiers easier to read, faster to type, and more feasible to
+pack lines in 80 column displays. These abbreviations are also used instead
+of more common abbreviations (e.g. ctrl for control) because, as part of
+actual English words, they are easier to type.
+
+Worklets provided by the Dax toolkit, described in
+Section~\ref{sec:ProvidedWorklets}, are contained in the \daxworklet{}
+package. Although the operation of a worklet happens exclusively in the
+execution environment, worklets are typically initialized in the control
+environment. Thus, the \daxworklet{} package is not encapsulated in either
+\daxcont{} or \daxexec{}.
+
+The Dax toolkit provides a base set of library functions that are ported to
+the various systems and compilers on which it is used. These functions are
+located in the \daxmath{} package. The features in \daxmath{} are available
+in both the control and execution environments, but they are typically used
+in the execution environment.
+
+The Dax toolkit contains code that uses specalized compiler features, such
+as those with CUDA and OpenMP, or libraries, such as Intel Threading
+Building Blocks, that will not be available on all machines. Code for these
+features are encapsulated in their own packages: \daxcuda{}, \daxopenmp{},
+and \daxtbb{}. Within each one of these packages, there will
+be \textnamespace{cont} and \textnamespace{exec} namespaces as necessary to
+denote features that are accessible in only one environment or the other.
+
+The Dax toolkit contains OpenGL interoperability \index{OpenGL}
+\index{interoperability} that allows data generated with Dax to be
+efficiently transfered to OpenGL objects. This feature is encapsulated in
+the \daxopengl{} package.
+
+Figure~\ref{fig:Packages} provides a diagram of the Dax package hierarchy.
+
+\begin{figure}
+  \centering
+  \fix{Make this pretty.}
+  \begin{itemizetight}
+  \item \textnamespace{dax}
+    \begin{itemizetight}
+    \item \textnamespace{cont}
+    \item \textnamespace{exec}
+    \item \textnamespace{worklet}
+    \item \textnamespace{math}
+    \item \textnamespace{cuda}
+      \begin{itemizetight}
+      \item \textnamespace{cont}
+      \end{itemizetight}
+    \item \textnamespace{openmp}
+      \begin{itemizetight}
+      \item \textnamespace{cont}
+      \end{itemizetight}
+    \item \textnamespace{tbb}
+      \begin{itemizetight}
+      \item \textnamespace{cont}
+      \end{itemizetight}
+    \item \textnamespace{opengl}
+    \end{itemizetight}
+  \end{itemizetight}
+  \caption{Dax package hierarchy.}
+  \label{fig:Packages}
+\end{figure}
+
+By convention all classes will be defined in a file with the same name as
+the class name (with a \textfilename{.h} extension) located in a directory
+corresponding to the package name. For example, the \daxcont{ArrayHandle}
+class is found in the \textfilename{dax/cont/ArrayHandle.h} header. There
+are, however, exceptions to this rule. Some smaller classes and types are
+grouped together for convienience. These exceptions will be noted as
+necessary.
+
+Within each namespace there may also be \textnamespace{internal}
+\indexnamespaceone{internal} and \textnamespace{detail}
+\indexnamespaceone{detail} sub-namespaces. The \textnamespace{internal}
+namespaces contain features that are used internally and may change without
+notice. The \textnamespace{detail} namespaces contain features that are
+used by a particular class but must be declared outside of that
+class. Users should generally ignore classes in these namespaces.
+
+\index{packages|)}
 
 
 \section{Basic Provisions}
@@ -114,3 +242,31 @@
 \fix{-dax::exec::CellVertices} \\
 \fix{-dax::exec::CellField} \\
 \fix{-cell operations}
+
+
+\section{OpenGL Interoperability}
+\label{sec:OpenGLInteroperability}
+
+
+\section{Coding Conventions}
+\label{sec:CodingConventions}
+
+\fix{-follows VTK conventions where possible}\\
+\fix{-2 space indentation}\\
+\fix{-no tabs}\\
+\fix{-fit within 80 column display whenever possible}\\
+\fix{-namespaces are lower case}\\
+\fix{-Class names are camel case starting with upper case}\\
+\fix{-Classes are declared in a file with the same name as the class in a
+  directory corresponding to the package/namespace}\\
+\fix{--Except where they're not}\\
+\fix{-Method, function, and class field names are camel case starting with
+  upper case}\\
+\fix{--Except when conflicts with convention from some other library
+  (e.g. make\_Vector2 corresponds to make\_pair in standard template
+  library).}\\
+\fix{-local variables and parameters are camel case starting with lower
+  case}\\
+\fix{-spelled out identifiers}\\
+\fix{-specify full namespace when using classes}\\
+\fix{-use this-> when referencing a class method or field}\\

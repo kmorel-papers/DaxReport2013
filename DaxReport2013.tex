@@ -30,6 +30,8 @@
 \usepackage{subfig}
 \usepackage{xspace}
 
+\usepackage{lmodern}
+
 \usepackage{makeidx}
 \makeindex
 
@@ -45,26 +47,118 @@
 \definecolor{darkred}{rgb}{0.5,0,0}
 \definecolor{darkgreen}{rgb}{0,0.5,0}
 
+\definecolor{daxidentifier}{rgb}{0,0,1}
+\definecolor{daxnamespace}{rgb}{0.5,0,0}
+\definecolor{daxmacro}{rgb}{0.5,0,0}
+\definecolor{daxsignature}{rgb}{0,0.5,0}
+
 \usepackage{listings}
 \lstloadlanguages{C,C++}
 \lstset{fontadjust=false,basicstyle=\scriptsize\ttfamily}
 %% \lstset{numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=2pt}
 \lstdefinelanguage{Dax}{
   morekeywords={struct,class,public,typedef, void, template, return, operator, const, for, int},
-  morekeywords={[2]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT,
-                   _1,_2,_3,_4, In, Out, Point, Field, Topology,
+  morekeywords={[2]_1,_2,_3,_4, In, Out, Point, Field, Topology,
                    Id, Id3, Tuple, Vector2,Vector3,Vector4,
                    WorkletMapField, WorkletMapCell,
                    ParametricCoordinates, CellDerivative},
-  morekeywords={[3]dax,exec,cont,math},
-  morekeywords={[4]ControlSignature, ExecutionSignature}
+  morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT},
+  morekeywords={[4]dax,exec,cont,math},
+  morekeywords={[5]ControlSignature, ExecutionSignature}
 }
 \lstset{language=Dax}
 \lstset{
-  keywordstyle=[2]\color{blue},
-  keywordstyle=[3]\color{darkred},
-  keywordstyle=[4]\color{darkgreen}
+  keywordstyle=\bfseries,
+  keywordstyle=[2]\color{daxidentifier},
+  keywordstyle=[3]\color{daxmacro},
+  keywordstyle=[4]\color{daxnamespace},
+  keywordstyle=[5]\color{daxsignature}
 }
+
+\newcommand*{\textcode}[1]{\texttt{#1}}
+\newcommand*{\textnamespace}[1]{\textcode{\color{daxnamespace}{#1}}}
+\newcommand*{\textmacro}[1]{\textcode{\color{daxmacro}{#1}}}
+\newcommand*{\textidentifier}[1]{\textcode{\color{daxidentifier}{#1}}}
+\newcommand*{\textsignature}[1]{\textcode{\color{daxsignature}{#1}}}
+
+\newcommand{\daxcontexport}{\textmacro{DAX\_CONT\_EXPORT}\index{DAX\_CONT\_EXPORT}\index{export!control}\index{function~export}\index{method~export}\xspace}
+\newcommand{\daxexecexport}{\textmacro{DAX\_EXEC\_EXPORT}\index{DAX\_EXEC\_EXPORT}\index{export!execution}\index{function~export}\index{method~export}\xspace}
+\newcommand{\daxexeccontexport}{\textmacro{DAX\_EXEC\_CONT\_EXPORT}\index{DAX\_EXEC\_CONT\_EXPORT}\index{export!control}\index{export!execution}\index{function~export}\index{method~export}\xspace}
+
+\newcommand{\controlsignature}{\textsignature{ControlSignature}\index{control~signature}\index{signature!control}\xspace}
+\newcommand{\executionsignature}{\textsignature{ExecutionSignature}\index{execution~signature}\index{signature!execution}\xspace}
+
+\newcommand*{\writenamespaceone}[1]{%
+  \textnamespace{#1}}
+\newcommand*{\writenamespacetwo}[2]{%
+  \writenamespaceone{#1}\textcode{::}\textnamespace{#2}}
+\newcommand*{\writenamespacethree}[3]{%
+  \writenamespacetwo{#1,#2}\textcode{::}\textnamespace{#3}}
+\newcommand*{\writenamespacefour}[4]{%
+  \writenamespacethree{#1,#2,#3}\textcode{::}\textnamespace{#4}}
+
+\newcommand*{\indexnamespaceone}[1]{%
+  \index{#1 namespace}\index{namespace!#1}}
+\newcommand*{\indexnamespacetwo}[2]{%
+  \index{#2 namespace}\index{#1::#2}\index{namespace!#1::#2}}
+\newcommand*{\indexnamespacethree}[3]{%
+  \index{#3 namespace}\index{#1::#2::#3}\index{namespace!#1::#2::#3}}
+\newcommand*{\indexnamespacefour}[4]{%
+  \index{#4 namespace}\index{#1::#2::#3::#4}\index{namespace!#1::#2::#3::#4}}
+
+\newcommand*{\writeindexidentifierone}[2]{%
+  \writenamespaceone{#1}\textcode{::}\textidentifier{#2}%
+  \index{#2}}
+\newcommand*{\writeindexidentifiertwo}[3]{%
+  \writenamespacetwo{#1}{#2}\textcode{::}\textidentifier{#3}%
+  \index{#3}}
+\newcommand*{\writeindexidentifierthree}[4]{%
+  \writenamespacethree{#1}{#2}{#3}\textcode{::}\textidentifier{#4}%
+  \index{#4}}
+\newcommand*{\writeindexidentifierfour}[5]{%
+  \writenamespacefour{#1}{#2}{#3}{#4}\textcode{::}\textidentifier{#5}%
+  \index{#5}}
+
+\newcommand*{\dax}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespaceone{dax}\indexnamespaceone{dax}}%
+             {\writeindexidentifierone{dax}{#1}}}
+\newcommand*{\daxcont}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{cont}\indexnamespacetwo{dax}{cont}}%
+             {\writeindexidentifiertwo{dax}{cont}{#1}}}
+\newcommand*{\daxexec}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{exec}\indexnamespacetwo{dax}{exec}}%
+             {\writeindexidentifiertwo{dax}{exec}{#1}}}
+\newcommand*{\daxworklet}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{worklet}\indexnamespacetwo{dax}{worklet}}%
+             {\writeindexidentifiertwo{dax}{worklet}{#1}}}
+\newcommand*{\daxmath}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{math}\indexnamespacetwo{dax}{math}}%
+             {\writeindexidentifiertwo{dax}{math}{#1}}}
+
+\newcommand*{\daxcuda}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{cuda}\indexnamespacetwo{dax}{cuda}}%
+             {\writeindexidentifiertwo{dax}{cuda}{#1}}}
+\newcommand*{\daxopenmp}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{openmp}\indexnamespacetwo{dax}{openmp}}%
+             {\writeindexidentifiertwo{dax}{openmp}{#1}}}
+\newcommand*{\daxtbb}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{tbb}\indexnamespacetwo{dax}{tbb}}%
+             {\writeindexidentifiertwo{dax}{tbb}{#1}}}
+
+\newcommand*{\daxopengl}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacetwo{dax}{opengl}\indexnamespacetwo{dax}{opengl}}%
+             {\writeindexidentifiertwo{dax}{opengl}{#1}}}
+
+\newcommand*{\textfilename}[1]{\textsf{#1}}
 
 % Cite commands I use to abstract away the different ways to reference an
 % entry in the bibliography (superscripts, numbers, dates, or author
@@ -79,8 +173,6 @@
 
 \newcommand*{\keyterm}[1]{\emph{#1}}
 
-\newcommand*{\textcode}[1]{\texttt{#1}}
-
 \newcommand{\fix}[1]{{\color{red}\textsc{[#1]}}}
 
 % Avoid putting figures on their own page.
@@ -93,6 +185,40 @@
 % page, it won't push everything to the bottom because it's not big enough
 % to have its own page.
 \renewcommand{\floatpagefraction}{.75}
+
+% Environments for tightly packed lists.
+\newenvironment{enumeratetight}{
+  \begin{enumerate}
+    \setlength{\topsep}{0pt}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \setlength{\parsep}{0pt}
+    \setlength{\partopsep}{0pt}
+}{
+  \end{enumerate}
+}
+
+\newenvironment{itemizetight}{
+  \begin{itemize}
+    \setlength{\topsep}{0pt}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \setlength{\parsep}{0pt}
+    \setlength{\partopsep}{0pt}
+}{
+  \end{itemize}
+}
+
+\newenvironment{descriptiontight}{
+  \begin{description}
+    \setlength{\topsep}{0pt}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \setlength{\parsep}{0pt}
+    \setlength{\partopsep}{0pt}
+}{
+  \end{description}
+}
 
 \begin{document}
 

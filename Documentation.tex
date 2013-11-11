@@ -139,6 +139,56 @@ class. Users should generally ignore classes in these namespaces.
 \section{Basic Provisions}
 \label{sec:BasicProvisions}
 
+This section describes the core facilities provided by the Dax
+toolkit. These include macros, types, and classes that define the
+environment in which code is run, the core types of data stored, and
+template introspection.
+
+\subsection{Function and Method Exports}
+\label{sec:FunctionAndMethodExports}
+
+Any function or method defined by the Dax toolkit must come with an export
+modifier that determines in which environments the function may be
+run. These export modifiers are C macros that Dax uses to instruct the
+compiler for which architectures to compile each method. Most user code
+outside of the Dax toolkit need not use these macros with the important
+exception of any classes passed to the Dax toolkit. This occurs when
+defining new worklets, array containers, and device adapters.
+
+Dax provides three export macros, \daxcontexport, \daxexecexport, and
+\daxexeccontexport, which are used to declare functions and methods that
+can run in the control environment, export environment, and both
+environments, respectively. The export macro is place after the template
+declaration, if there is one, and before the return type for the
+function. Here is a simple example of a function that will square a
+value. Since most types you would use this function on have operators in
+both the control and execution environments, the function is exported to
+both places.
+
+\begin{lstlisting}
+template<class ValueType>
+DAX_EXEC_CONT_EXPORT
+ValueType Square(const ValueType &inValue)
+{
+ return inValue * inValue;
+}
+\end{lstlisting}
+
+The primary function of the export macros is to interject compiler-specific
+keywords that specify what architecture to compile code for. For example,
+when compiling with CUDA\index{CUDA}, the control exports have
+\textcode{\_\_host\_\_} in them and execution exports have
+\textcode{\_\_device\_\_} in them.
+
+There is one additional export macro that is not used for functions but
+rather used when declaring a constant data object that is used in the
+execution environment. This macro is named
+\textmacro{DAX\_EXEC\_CONSTANT\_EXPORT}\index{DAX\_EXEC\_CONSTANT\_EXPORT}\index{export!constant}\index{constant~export}
+and is used to declare a constant lookup table used when executing a
+worklet. Its primary reason for existing is to add a
+\textcode{\_\_constant\_\_} keyword when compiling with CUDA. This export
+currently has no effect on any other compiler.
+
 \subsection{Core Data Types}
 \label{sec:CoreDataTypes}
 
@@ -147,11 +197,6 @@ class. Users should generally ignore classes in these namespaces.
 \fix{--Supported operators} \\
 \fix{-dax::Tuple<>} \\
 \fix{-dax::Pair<>}
-
-\subsection{Function and Method Exports}
-\label{sec:FunctionAndMethodExports}
-
-\fix{Write}
 
 \subsection{Traits}
 \label{sec:Traits}
@@ -206,6 +251,11 @@ class. Users should generally ignore classes in these namespaces.
 
 \fix{Write}
 
+\subsection{Error Handling}
+\label{sec:ErrorHandling}
+
+\fix{Write}
+
 \subsection{Device Adapter Algorithms}
 \label{sec:DeviceAdapterAlgorithms}
 
@@ -229,7 +279,8 @@ class. Users should generally ignore classes in these namespaces.
 \fix{-List of types}\\
 \fix{-Base Classes}\\
 \fix{-operator()} \\
-\fix{-signatures}
+\fix{-signatures} \\
+\fix{-error handling}
 
 \subsection{Math}
 \label{sec:Math}

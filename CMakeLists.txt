@@ -9,6 +9,7 @@ set(images
   SANDimages/snllineblk.pdf
   SANDimages/SANDbackground.png
   images/DaxDiagram.pdf
+  images/PackageHierarchy.pdf
   )
 
 set(input_docs

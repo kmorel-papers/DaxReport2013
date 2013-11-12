@@ -120,15 +120,16 @@ Figure~\ref{fig:Packages} provides a diagram of the Dax package hierarchy.
 By convention all classes will be defined in a file with the same name as
 the class name (with a \textfilename{.h} extension) located in a directory
 corresponding to the package name. For example, the \daxcont{ArrayHandle}
-class is found in the \textfilename{dax/cont/ArrayHandle.h} header. There
+class is found in the \daxheader{dax/cont}{ArrayHandle.h} header. There
 are, however, exceptions to this rule. Some smaller classes and types are
 grouped together for convienience. These exceptions will be noted as
 necessary.
 
-Within each namespace there may also be \textnamespace{internal}
-\indexnamespaceone{internal} and \textnamespace{detail}
-\indexnamespaceone{detail} sub-namespaces. The \textnamespace{internal}
-namespaces contain features that are used internally and may change without
+Within each namespace there may also
+be \textnamespace{internal}\indexnamespaceone{internal}
+and \textnamespace{detail}\indexnamespaceone{detail}
+sub-namespaces. The \textnamespace{internal} namespaces contain features
+that are used internally and may change without
 notice. The \textnamespace{detail} namespaces contain features that are
 used by a particular class but must be declared outside of that
 class. Users should generally ignore classes in these namespaces.
@@ -158,12 +159,15 @@ defining new worklets, array containers, and device adapters.
 Dax provides three export macros, \daxcontexport, \daxexecexport, and
 \daxexeccontexport, which are used to declare functions and methods that
 can run in the control environment, export environment, and both
-environments, respectively. The export macro is place after the template
-declaration, if there is one, and before the return type for the
-function. Here is a simple example of a function that will square a
-value. Since most types you would use this function on have operators in
-both the control and execution environments, the function is exported to
-both places.
+environments, respectively. These macros get defined by including just
+about any Dax header file, but including \daxheader{dax}{Types.h} will
+ensure they are defined. 
+
+The export macro is place after the template declaration, if there is one,
+and before the return type for the function. Here is a simple example of a
+function that will square a value. Since most types you would use this
+function on have operators in both the control and execution environments,
+the function is exported to both places.
 
 \begin{lstlisting}
 template<class ValueType>
@@ -183,7 +187,7 @@ when compiling with CUDA\index{CUDA}, the control exports have
 There is one additional export macro that is not used for functions but
 rather used when declaring a constant data object that is used in the
 execution environment. This macro is named
-\textmacro{DAX\_EXEC\_CONSTANT\_EXPORT}\index{DAX\_EXEC\_CONSTANT\_EXPORT}\index{export!constant}\index{constant~export}
+\daxmacro{DAX\_EXEC\_CONSTANT\_EXPORT}\index{export!constant}\index{constant~export}
 and is used to declare a constant lookup table used when executing a
 worklet. Its primary reason for existing is to add a
 \textcode{\_\_constant\_\_} keyword when compiling with CUDA. This export
@@ -192,11 +196,138 @@ currently has no effect on any other compiler.
 \subsection{Core Data Types}
 \label{sec:CoreDataTypes}
 
-\fix{-dax::Id, dax::Scalar} \\
-\fix{-dax::Id2, dax::Id3, dax::Vector2, dax::Vector3, dax::Vector4} \\
-\fix{--Supported operators} \\
-\fix{-dax::Tuple<>} \\
-\fix{-dax::Pair<>}
+Except in rare circumstances where precision is not a concern, the Dax
+toolkit does not directly use the core C types like \textcode{int},
+\textcode{float}, and \textcode{double}. Instead, Dax provides its own core
+types, which are declared in \daxheader{dax}{Types.h}.
+
+\subsubsection{Single Number Types}
+
+All floating point values should be declared as type \dax{Scalar}, and all
+integer values, generally used for indexing, should be declared as type
+\dax{Id}. The chief advantage of using these declared types rather than the
+core C types is that the precision can easily be changed. By default, both
+types are 32 bits wide. The CMake configuration options
+\cmakevar{DAX\_USE\_DOUBLE\_PRECISION} and \cmakevar{DAX\_USE\_64BIT\_IDS}
+can be used to change the \dax{Scalar} type and \dax{Id} type,
+respectively, to be 64 bits wide. The configuration can be overridden by
+defining the C macro \daxmacro{DAX\_USE\_DOUBLE\_PRECISION} or
+\daxmacro{DAX\_NO\_DOUBLE\_PRECISION} to force \dax{Scalar} to be either 64
+or 32 bits and defining the C macro \daxmacro{DAX\_USE\_64BIT\_IDS} or
+\daxmacro{DAX\_NO\_64BIT\_IDS} to force \dax{Id} to be either 64 or 32
+bits. These macros must be defined before any Dax header files are included
+to take effect. For convenience, you can include either
+\daxheader{dax/internal}{ConfigureFor32.h} or
+\daxheader{dax/internal}{ConfigureFor64.h} to force both \dax{Scalar} and
+\dax{Id} to be 32 or 64 bits. The reason Dax uses macros to determine these
+type widths rather than templates is to reduce the number of template
+parameters required in the already template-heavy Dax classes and
+functions.
+
+\subsubsection{Vector Types}
+
+Visualization algorithms also often require operations on short
+vectors. Arrays indexed in up to three dimensions are common. Data is often
+defined in 2-space and 3-space, and transformations are typically done in
+homogeneous coordinates of length 4. To simplify these types of operations,
+Dax provides several vector data types.
+
+The types \dax{Id2} and \dax{Id3} are couple and triple values of type
+\dax{Id}. The types \dax{Vector2}, \dax{Vector3}, and \dax{Vector4} are
+couple, triple, and quadruple values of type \dax{Scalar}. The elements of
+these vectors are accessed with the bracket operator, so they syntatically
+appear like short arrays.
+
+The default constructor of these vector types leaves the values
+uninitialized. All vectors have a constructor with one arguments that is
+used to initialize all components. All these vectors also have a
+constructor that allows you to set the individual components. Likewise,
+there are a set of \dax{make\_Id*} and \dax{make\_Vector*} functions that
+build initialized vector types.
+
+\begin{lstlisting}
+dax::Vector3 A(1);                      // A is {1, 1, 1}
+A[1] = 2;                               // A is now {1, 2, 1}
+dax::Vector3 B(1, 2, 3);                // B is {1, 2, 3}
+dax::Vector3 C = make_Vector3(3, 4, 5); // C is {3, 4, 5}
+\end{lstlisting}
+
+The vector types all support component-wise arithmetic using the operators
+for plus (\textcode{+}), minus (\textcode{-}), multiply (\textcode{*}), and
+divide (\textcode{/}). They also support scalar to vector multiplication
+with the multiply operator. The comparison operators equal (\textcode{==})
+is true if every pair of corresponding components are true and not equal
+(\textcode{!=}) is true otherwise.  A special \dax{dot} function is
+overloaded to provide a dot product for every type of vector.
+
+\begin{lstlisting}
+dax::Vector3 A(1, 2, 3);
+dax::Vector3 B(4, 5, 6.5);
+dax::Vector3 C = A + B;                     // C is {5, 7, 9.5}
+dax::Vector3 D = 2 * C;                     // D is {10, 14, 19}
+dax::Scalar s = dax::dot(A, B);             // s is 33.5
+bool b1 = (A == B);                         // b1 is false
+bool b2 = (A == dax::make_Vector3(1, 2, 3); // b2 is true
+\end{lstlisting}
+
+\subsubsection{Tuple}
+
+The Dax toolkit provides the templated class \dax{Tuple}\tparams{T,Size},
+which is essentially a fixed length array of a given type. \dax{Tuple}
+objects behave just like the vector types previously described but with any
+type and length that you specify.
+
+\begin{lstlisting}
+dax::Tuple<dax::Scalar, 5> A(2);  // A is {2, 2, 2, 2, 2}
+for (int index = 1; index < 5; index++)
+  {
+  A[index] = A[index-1] * 1.5;
+  }
+// A is now {2, 3, 4.5, 6.75, 10.125}
+\end{lstlisting}
+
+The same operators that work on the vector types work on \dax{Tuple} with
+the caveat that the operator must work on the component type of the
+tuple. For example, the multiply operator will work fine on objects of type
+\dax{Tuple}\tparams{char,3}, but the multiply operator will not work on objects
+of type \dax{Tuple}\tparams{std::string,3} because you cannot multiply
+objects of type \textcode{std::string}.
+
+A \dax{Tuple} of the appropriate type can be used interchangeably with a
+matching vector type. In fact, a vector type is really just a typedef over
+a \dax{Tuple}. This is convienient for a number of things including writing
+generic functions that work over all types.
+
+\begin{lstlisting}
+template<typename T, int Size>
+T SumComponents(const dax::Tuple<T,Size> &tuple)
+{
+  T result = tuple[0];
+  for (int index = 1; index < Size; index++)
+    {
+    result += tuple[index];
+    }
+  return result;
+}
+
+void Foo()
+{
+  dax::Id a = SumComponents(dax::make_Id3(1, 2, 3));                    // a is 6
+  dax::Scalar b = SumComponents(dax::make_Vector4(1.5, 2.5, 3.5, 4.5)); // b is 12
+}
+\end{lstlisting}
+
+\subsubsection{Pair}
+
+The Dax toolkit defines a \dax{Pair} templated object that behaves just
+like \textcode{std::pair} from the standard template library. The
+difference is that \dax{Pair} will work in both the execution and control
+environment, whereas the STL \textcode{std::pair} does not always work in
+the execution environment.
+
+The Dax version of \dax{Pair} supports the same types, fields, and
+operations as the STL version. Dax also provides a \dax{make\_Pair}
+function for convenience.
 
 \subsection{Traits}
 \label{sec:Traits}

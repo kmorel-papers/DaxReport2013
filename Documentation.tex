@@ -169,14 +169,14 @@ function that will square a value. Since most types you would use this
 function on have operators in both the control and execution environments,
 the function is exported to both places.
 
-\begin{lstlisting}
+\begin{daxexample}{Usage of export macro.}
 template<class ValueType>
 DAX_EXEC_CONT_EXPORT
 ValueType Square(const ValueType &inValue)
 {
  return inValue * inValue;
 }
-\end{lstlisting}
+\end{daxexample}
 
 The primary function of the export macros is to interject compiler-specific
 keywords that specify what architecture to compile code for. For example,
@@ -245,12 +245,12 @@ constructor that allows you to set the individual components. Likewise,
 there are a set of \dax{make\_Id*} and \dax{make\_Vector*} functions that
 build initialized vector types.
 
-\begin{lstlisting}
+\begin{daxexample}{Creating vector types.}
 dax::Vector3 A(1);                      // A is {1, 1, 1}
 A[1] = 2;                               // A is now {1, 2, 1}
 dax::Vector3 B(1, 2, 3);                // B is {1, 2, 3}
 dax::Vector3 C = make_Vector3(3, 4, 5); // C is {3, 4, 5}
-\end{lstlisting}
+\end{daxexample}
 
 The vector types all support component-wise arithmetic using the operators
 for plus (\textcode{+}), minus (\textcode{-}), multiply (\textcode{*}), and
@@ -260,7 +260,7 @@ is true if every pair of corresponding components are true and not equal
 (\textcode{!=}) is true otherwise.  A special \dax{dot} function is
 overloaded to provide a dot product for every type of vector.
 
-\begin{lstlisting}
+\begin{daxexample}{Vector operations.}
 dax::Vector3 A(1, 2, 3);
 dax::Vector3 B(4, 5, 6.5);
 dax::Vector3 C = A + B;                     // C is {5, 7, 9.5}
@@ -268,7 +268,7 @@ dax::Vector3 D = 2 * C;                     // D is {10, 14, 19}
 dax::Scalar s = dax::dot(A, B);             // s is 33.5
 bool b1 = (A == B);                         // b1 is false
 bool b2 = (A == dax::make_Vector3(1, 2, 3); // b2 is true
-\end{lstlisting}
+\end{daxexample}
 
 \subsubsection{Tuple}
 
@@ -277,14 +277,14 @@ which is essentially a fixed length array of a given type. \dax{Tuple}
 objects behave just like the vector types previously described but with any
 type and length that you specify.
 
-\begin{lstlisting}
+\begin{daxexample}{The tuple class.}
 dax::Tuple<dax::Scalar, 5> A(2);  // A is {2, 2, 2, 2, 2}
 for (int index = 1; index < 5; index++)
   {
   A[index] = A[index-1] * 1.5;
   }
 // A is now {2, 3, 4.5, 6.75, 10.125}
-\end{lstlisting}
+\end{daxexample}
 
 The same operators that work on the vector types work on \dax{Tuple} with
 the caveat that the operator must work on the component type of the
@@ -298,7 +298,7 @@ matching vector type. In fact, a vector type is really just a typedef over
 a \dax{Tuple}. This is convienient for a number of things including writing
 generic functions that work over all types.
 
-\begin{lstlisting}
+\begin{daxexample}{Interchangeability of tuples and vector types.}
 template<typename T, int Size>
 T SumComponents(const dax::Tuple<T,Size> &tuple)
 {
@@ -315,7 +315,18 @@ void Foo()
   dax::Id a = SumComponents(dax::make_Id3(1, 2, 3));                    // a is 6
   dax::Scalar b = SumComponents(dax::make_Vector4(1.5, 2.5, 3.5, 4.5)); // b is 12
 }
-\end{lstlisting}
+\end{daxexample}
+
+In addition to generalizing vector operations and making arbitrarily long
+vectors, \dax{Tuple} is useful for creating any sequence of homogeneous
+objects. Here is a simple example of using \dax{Tuple} to hold the state of
+a polygon.
+
+\begin{daxexample}{Usage of a tuple.}
+dax::Tuple<dax::Vector2,3> equilateralTriange(dax::make_Vector2(0.0, 0.0),
+                                              dax::make_Vector2(1.0, 0.0),
+                                              dax::make_Vector2(0.5, 0.866));
+\end{daxexample}
 
 \subsubsection{Pair}
 

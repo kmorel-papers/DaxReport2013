@@ -67,8 +67,14 @@
   morekeywords={[2]_1,_2,_3,_4, In, Out, Point, Field, Topology,
                    Id,Id2,Id3,Scalar,Tuple,Vector2,Vector3,Vector4,
                    make_Id2,make_Id3,make_Vector2,make_Vector3,make_Vector4,
-                   dot,
+                   dot,NUM_COMPONENTS
                    WorkletMapField, WorkletMapCell,
+                   TypeTraits,NumericTag,DimensionalityTag,
+                   TypeTraitsRealTag,TypeTraitsIntegerTag,
+                   TypeTraitsScalarTag,TypeTraitsVectorTag,
+                   VectorTraits,ComponentType,HasMultipleComponents,
+                   VectorTraitsTagMultipleComponents,
+                   VectorTraitsTagSingleComponent,
                    ParametricCoordinates, CellDerivative},
   morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT},
   morekeywords={[4]dax,exec,cont,math},
@@ -104,11 +110,11 @@
 \newcommand*{\writenamespaceone}[1]{%
   \textnamespace{#1}}
 \newcommand*{\writenamespacetwo}[2]{%
-  \writenamespaceone{#1}\textcode{::}\textnamespace{#2}}
+  \writenamespaceone{#1}\textcode{:\colonhyp}\textnamespace{#2}}
 \newcommand*{\writenamespacethree}[3]{%
-  \writenamespacetwo{#1,#2}\textcode{::}\textnamespace{#3}}
+  \writenamespacetwo{#1,#2}\textcode{:\colonhyp}\textnamespace{#3}}
 \newcommand*{\writenamespacefour}[4]{%
-  \writenamespacethree{#1,#2,#3}\textcode{::}\textnamespace{#4}}
+  \writenamespacethree{#1,#2,#3}\textcode{:\colonhyp}\textnamespace{#4}}
 
 \newcommand*{\indexnamespaceone}[1]{%
   \index{#1 namespace}\index{namespace!#1}}
@@ -120,16 +126,16 @@
   \index{#4 namespace}\index{#1::#2::#3::#4}\index{namespace!#1::#2::#3::#4}}
 
 \newcommand*{\writeindexidentifierone}[2]{%
-  \writenamespaceone{#1}\textcode{::}\textidentifier{#2}%
+  \writenamespaceone{#1}\textcode{:\colonhyp}\textidentifier{#2}%
   \index{#2}}
 \newcommand*{\writeindexidentifiertwo}[3]{%
-  \writenamespacetwo{#1}{#2}\textcode{::}\textidentifier{#3}%
+  \writenamespacetwo{#1}{#2}\textcode{:\colonhyp}\textidentifier{#3}%
   \index{#3}}
 \newcommand*{\writeindexidentifierthree}[4]{%
-  \writenamespacethree{#1}{#2}{#3}\textcode{::}\textidentifier{#4}%
+  \writenamespacethree{#1}{#2}{#3}\textcode{:\colonhyp}\textidentifier{#4}%
   \index{#4}}
 \newcommand*{\writeindexidentifierfour}[5]{%
-  \writenamespacefour{#1}{#2}{#3}{#4}\textcode{::}\textidentifier{#5}%
+  \writenamespacefour{#1}{#2}{#3}{#4}\textcode{:\colonhyp}\textidentifier{#5}%
   \index{#5}}
 
 \newcommand*{\dax}[1]{%
@@ -182,8 +188,9 @@
   \index{#1}%
   \index{CMake configuration!#1}}
 
-\lstnewenvironment{daxexample}[1]{
-  \lstset{caption={#1}}
+\lstnewenvironment{daxexample}[2][-*-]{
+  \lstset{caption={#2}}
+  \ifthenelse{\equal{#1}{-*-}}{}{\lstset{label=#1}}
 }{
 }
 

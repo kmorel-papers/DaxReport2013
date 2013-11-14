@@ -236,7 +236,9 @@ The types \dax{Id2} and \dax{Id3} are couple and triple values of type
 \dax{Id}. The types \dax{Vector2}, \dax{Vector3}, and \dax{Vector4} are
 couple, triple, and quadruple values of type \dax{Scalar}. The elements of
 these vectors are accessed with the bracket operator, so they syntatically
-appear like short arrays.
+appear like short arrays. They additionally have a constant named
+\textidentifier{NUM\_COMPONENTS}\index{NUM\_COMPONENTS} to specify how many
+components are in the tuple.
 
 The default constructor of these vector types leaves the values
 uninitialized. All vectors have a constructor with one arguments that is
@@ -279,7 +281,7 @@ type and length that you specify.
 
 \begin{daxexample}{The tuple class.}
 dax::Tuple<dax::Scalar, 5> A(2);  // A is {2, 2, 2, 2, 2}
-for (int index = 1; index < 5; index++)
+for (int index = 1; index < NUM_COMPONENTS; index++)
   {
   A[index] = A[index-1] * 1.5;
   }
@@ -300,6 +302,7 @@ generic functions that work over all types.
 
 \begin{daxexample}{Interchangeability of tuples and vector types.}
 template<typename T, int Size>
+DAX_EXEC_CONT_EXPORT
 T SumComponents(const dax::Tuple<T,Size> &tuple)
 {
   T result = tuple[0];
@@ -330,11 +333,11 @@ dax::Tuple<dax::Vector2,3> equilateralTriange(dax::make_Vector2(0.0, 0.0),
 
 \subsubsection{Pair}
 
-The Dax toolkit defines a \dax{Pair} templated object that behaves just
-like \textcode{std::pair} from the standard template library. The
-difference is that \dax{Pair} will work in both the execution and control
-environment, whereas the STL \textcode{std::pair} does not always work in
-the execution environment.
+The Dax toolkit defines a \dax{Pair}\tparams{T1,T2} templated object that
+behaves just like \textcode{std:\colonhyp{}pair} from the standard template
+library. The difference is that \dax{Pair} will work in both the execution
+and control environment, whereas the STL \textcode{std::pair} does not
+always work in the execution environment.
 
 The Dax version of \dax{Pair} supports the same types, fields, and
 operations as the STL version. Dax also provides a \dax{make\_Pair}
@@ -343,9 +346,210 @@ function for convenience.
 \subsection{Traits}
 \label{sec:Traits}
 
-\fix{-type traits} \\
-\fix{-vector traits} \\
-\fix{-vector operations}
+\index{traits|(}
+
+When using templated types, it is often necessary to get information about
+the type or specialize code based on general properties of the type. The
+Dax toolkit uses traits classes to publish and retreive information about
+types. A traits class is simply a templated structure that provides
+typedefs for tag\index{tag} structures, empty types used for
+identification. The traits classes might also contain constant numbers and
+helpful static functions. See Mayers\scite{Mayers2009} for a description of
+traits classes and their uses.
+
+\subsubsection{Type Traits}
+
+The \dax{TypeTraits}\tparams{T} templated class provides basic information
+about a core type. These type traits are available for all the basic C++
+types as well as the core Dax types described in
+Section~\ref{sec:CoreDataTypes}. \dax{TypeTraits} contains the following
+elements.
+
+\begin{description}
+\item[\textidentifier{NumericTag}] \index{NumericTag} This type is set to
+  either \dax{TypeTraitsRealTag} or \dax{TypeTraitsIntegerTag} to signal
+  that the type represents either floating point numbers or integers.
+\item[\textidentifier{DimensionalityTag}] \index{DimensionalityTag} This
+  type is set to either \dax{TypeTraitsScalarTag} or
+  \dax{TypeTraitsVectorTag} to signal that the type represents either a
+  single scalar value or a tuple of values.
+\end{description}
+
+The definition of \dax{TypeTraits} for \dax{Scalar} could like something
+like this.
+\begin{daxexample}{Definition of \protect \dax{TypeTraits}\tparams{\protect \dax{Scalar}}.}
+namespace dax {
+
+template<>
+struct TypeTraits<dax::Scalar>
+{
+  typedef TypeTraitsRealTag NumericTag;
+  typedef TypeTraitsScalarTag DimensionalityTag;
+};
+
+}
+\end{daxexample}
+
+Here is a simple example of using \dax{TypeTraits} to implement a generic
+function that behaves like the modulus operator (\textcode{\%}) for all
+types including floating points and vectors.
+
+\begin{daxexample}[ex:TypeTraits]{Using \protect \dax{TypeTraits} for a generic modulus.}
+#include <dax/TypeTraits.h>
+
+template<typename T>
+T Modulus(const T &numerator, const T &denominator);
+
+namespace detail {
+
+template<typename T>
+T ModulusImpl(const T &numerator,
+              const T &denominator,
+              dax::TypeTraitsIntegerTag,
+              dax::TypeTraitsScalarTag)
+{
+  return numerator % denominator;
+}
+
+template<typename T>
+T ModulusImpl(const T &numerator,
+              const T &denominator,
+              dax::TypeTraitsRealTag,
+              dax::TypeTraitsScalarTag)
+{
+  T quotient = numerator / denominator;
+  return (quotient - dax::math::Floor(quotient))*demoninator;
+}
+
+template<typename T, typename NumericTag>
+T ModulusImpl(const T &numerator,
+              const T &denominator,
+              NumericTag,
+              dax::TypeTraitsVectorTag)
+{
+  T result;
+  for (int componentIndex = 0; componentIndex < T::NUM_COMPONENTS; componentIndex++)
+    {
+    result[componentIndex] = Modulus(numerator[componentIndex],denominator[componentIndex]);
+    }
+}
+
+} // namespace detail
+
+template<typename T>
+T Modulus(const T &numerator, const T &denominator)
+{
+  return detail::ModulusImpl(numerator,
+                             denominator,
+                             typename dax::TypeTraits<T>::NumericTag(),
+                             typename dax::TypeTraits<T>::DimensionalityTag());
+}
+\end{daxexample}
+
+\subsubsection{Vector Traits}
+
+The \dax{VectorTraits}\tparams{T} templated class provides information and
+accessors to vector and tuple types. It contains the following elements.
+
+\begin{description}
+\item[\textidentifier{ComponentType}] \index{ComponentType} This type is
+  set to the type for each component in the vector. For example, a
+  \dax{Vector3} has \textidentifier{ComponentType} defined as \dax{Scalar}.
+\item[\textidentifier{NUM\_COMPONENTS}] \index{NUM\_COMPONENTS} An integer
+  specifying how many components are contained in the vector.
+\item[\textidentifier{HasMultipleComponents}] \index{HasMultipleComponents}
+  This type is set to either \dax{VectorTraitsTagSingleComponent} if the
+  vector length is size 1 or \dax{VectorTraitsTagMultipleComponents}
+  otherwise. This tag can be useful for creating specialized functions when
+  a vector is really just a scalar.
+\item[\textcode{GetComponent}] \index{GetComponent} A static method that
+  takes a vector and returns a particular component.
+\item[\textcode{SetComponent}] \index{SetComponent} A static method that
+  takes a vector and sets are particular component to a given value.
+\item[\textcode{ToTuple}] \index{ToTuple} A static method that converts a
+  vector of the given type to a \dax{Tuple}.
+\end{description}
+
+The definition of \dax{VectorTraits} for \dax{Id3} could like something
+like this.
+\begin{daxexample}{Definition of \protect \dax{VectorTraits}\tparams{\protect \dax{Id3}}.}
+template<>
+struct VectorTraits<dax::Id3>
+{
+  typedef dax::Id ComponentType;
+  static const int NUM_COMPONENTS = 3;
+  typedef VectorTraitsTagMultipleComponents HasMultipleComponents;
+
+  DAX_EXEC_CONT_EXPORT
+  static dax::Id &GetComponent(dax::Id3 &vector, int component) {
+    return vector[component];
+  }
+
+  DAX_EXEC_CONT_EXPORT
+  static void SetComponent(dax::Id3 &vector, int component, dax::Id value) {
+    vector[component] = value;
+  }
+
+  DAX_EXEC_CONT_EXPORT
+  static dax::Tuple<dax::Id,3> ToTuple(const dax::Id3 &vector) {
+    return vector;
+  }
+};
+\end{daxexample}
+
+The real power of vector traits is that they simplify creating generic
+operations on any type that can look like a vector. This includes
+operations on scalar values as if they were vectors of size one. The
+following code uses vector traits to simplify the implementation of less
+functors\index{less} that define an ordering that can be used for sorting
+and other operations.
+
+\begin{daxexample}{Using \protect \dax{VectorTraits} for less functors.}
+#include <dax/VectorTraits.h>
+
+// This functor provides a total ordering of vectors. Every compared vector
+// will be either less, greater, or equal.
+template<typename T>
+struct LessTotalOrder
+{
+  bool operator()(const T &left, const T &right)
+  {
+    for (int index = 0; index < dax::VectorTraits<T>::NUM_COMPONENTS; index++)
+      {
+      const T &leftValue = dax::VectorTraits<T>::GetComponent(left, index);
+      const T &rightValue = dax::VectorTraits<T>::GetComponent(right, index);
+      if (leftValue < rightValue) { return true; }
+      if (rightValue < leftValue) { return false; }
+      }
+    // If we are here, the vectors are equal.
+    return false;
+  }
+};
+
+// This functor provides a partial ordering of vectors. It returns true if and
+// only if all components satisfy the less operation. It is possible for
+// vectors to be neither less, greater, nor equal, but the transitive closure
+// is still valid.
+template<typename T>
+struct LessTotalOrder
+{
+  bool operator()(const T &left, const T &right)
+  {
+    for (int index = 0; index < dax::VectorTraits<T>::NUM_COMPONENTS; index++)
+      {
+      const T &leftValue = dax::VectorTraits<T>::GetComponent(left, index);
+      const T &rightValue = dax::VectorTraits<T>::GetComponent(right, index);
+      if (!(leftValue < rightValue)) { return false; }
+      }
+    // If we are here, all components satisfy less than relation.
+    return true;
+  }
+};
+\end{daxexample}
+
+\index{traits|)}
+
+%TODO: Document vector operations
 
 
 \section{Provided Worklets}

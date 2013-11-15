@@ -555,15 +555,461 @@ struct LessTotalOrder
 \section{Provided Worklets}
 \label{sec:ProvidedWorklets}
 
-\fix{Algorithm implementations provided by Dax.}
+The Dax toolkit provides several common visualization algorithms
+encapsulated in worklets\index{worklet} that can be executed in parallel on
+your data. This section describes each of the worklets provided. All
+worklets provided by Dax are in the \daxworklet{} namespace and defined in
+header files in the \textfilename{dax/worklet} directory.
 
-\fix{The tools provided to build new worklets, which is designed to be a
-  simple process, are documented in
-  Section~\ref{sec:ExecutionEnvironment}.}
+Much of the support structures for defining data and executing jobs, which
+you will see in examples, is defined in the Dax control
+environment\index{control~environment}. These features are documented in
+Section~\ref{sec:ControlEnvironment}. The Dax toolkit also provides
+facilities to make it easy to define your own worklet. Descriptions of
+these features are in Section~\ref{sec:ExecutionEnvironment}.
+
+\subsection{Cell Average}
+\label{sec:worklet:CellAverage}
+
+The \daxworklet{CellAverage} worklet takes a topology and a field and
+averages the value of the field in each point. For each cell, it find the
+field value on each point of the cell and takes the average of
+those. \daxworklet{CellAverage} is a cheap but inaccurate way to integrate
+the value of a field in each cell. A similar worklet named point data to
+cell data does a similar operation except that it interpolates the field
+value to the parametric center of the cell
+(Section~\ref{sec:worklet:PointDataToCellData}), which may be different
+than a simple average.
+
+\begin{daxexample}{Cell average worklet.}
+#include <dax/worklet/CellAverage.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunCellAverage(const GridType &grid,
+                    const dax::cont::ArrayHandle<dax::Scalar> &inPointData,
+                    dax::cont::ArrayHandle<dax::Scalar> &outCellData)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::CellAverage(), grid, inPointData, outCellData);
+}
+\end{daxexample}
+
+\subsection{Cell Data to Point Data}
+
+The cell data to point data worklet finds all cells incident on each point
+and then averages the field values of all incident cells to the point.
+
+\fix{TODO: Running this worklet needs to be similfied. The scheduler needs
+  to be cleaned up to remove the helper classes. Also, there should
+  probably be a specialized worklet type for doing cell to point
+  operations.}
+
+Running the cell data to point data worklet is a two step process. In the
+first step, \daxworklet{CellDataToPointDataGenerateKeys} extracts point
+indices for each cell and attaches field values to them. In the second
+step, \daxworklet{CellDataToPointDataReduceKeys} collects field values on a
+point and averages them.
+
+\begin{daxexample}{Cell data to point data worklet.}
+#include <dax/worklet/CellDataToPointData.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/ArrayHandleConstant.h>
+#include <dax/cont/GenerateKeysValues.h>
+#include <dax/cont/ReduceKeysValues.h>
+#include <dax/cont/Scheduler.h>
+
+#include <dax/CellTraits.h>
+
+template<typename GridType, typename FieldType>
+DAX_CONT_EXPORT
+void RunCellDataToPointData(const GridType &grid,
+                            const dax::cont::ArrayHandle<FieldType> &inPointData,
+                            dax::cont::ArrayHandle<FieldType> &outCellData)
+{
+  dax::cont::ArrayHandleConstant<dax::Id> keyGenCounts =
+      dax::cont::make_ArrayHandleConstant<dax::Id>(
+            dax::CellTraits<CellTag>::NUM_VERTICES, grid.GetNumberOfCells());  
+
+  dax::cont::Scheduler<> scheduler;
+
+  dax::cont::GenerateKeysValues<
+      dax::worklet::CellDataToPointDataGenerateKeys,
+      dax::cont::ArrayHandleConstant<dax::Id> > generateKeys(keyGenCounts);
+
+  dax::cont::ArrayHandle<dax::Id> keyArray;
+  dax::cont::ArrayHandle<FieldType> valueArray;
+
+  scheduler.Invoke(generateKeys, grid, inPointData, keyArray, valueArray);
+
+  dax::cont::ReduceKeysValues<
+    dax::worklet::CellDataToPointDataReduceKeys,
+    dax::cont::ArrayHandle<dax::Id> > reduceKeys(keyArray);
+
+  scheduler.Invoke(reduceKeys, valueArray, outCellData);
+}
+\end{daxexample}
+
+\subsection{Cell Gradient}
+
+The \daxworklet{CellGradient} worklet computes the gradient of a point
+field at the parametric center of each cell.
+
+\begin{daxexample}{Cell gradient worklet.}
+#include <dax/worklet/CellGradient.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunCellGradient(const GridType &grid,
+                     const dax::cont::ArrayHandle<dax::Scalar> &inPointField,
+                     dax::cont::ArrayHandle<dax::Vector3> &outCellGradient)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::CellGradient(),
+                   grid,
+                   grid.GetPointCoordinates(),
+                   inPointField,
+                   outCellGradient);
+}
+\end{daxexample}
+
+\subsection{Cosine}
+
+The \daxworklet{Cosine} worklet computes the cosine of a field. The field
+can be either a point field or a cell field (or really, just any array).
+
+\begin{daxexample}{Cosine worklet.}
+#include <dax/worklet/Cosine.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename FieldType>
+DAX_CONT_EXPORT
+void RunCosine(const dax::cont::ArrayHandle<FieldType> &inField,
+               dax::cont::ArrayHandle<FieldType> &outField)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::Cosine(), inField, outField);
+}
+\end{daxexample}
+
+\subsection{Elevation}
+
+The \daxworklet{Elevation} worklet find the elevation of points in
+$\mathrm{R}^3$ in relation to a base plane. The orientation of the
+elevation is determined by a low point location and a high point
+location. Values lower than the low point and higher than the high point
+are clamped to the minimum and maximum values. The range of valid values
+can also be specified.
+
+The elevation worklet is design to be run on the point coordinates of a
+grid, but in fact could be run on any field or array.
+
+The following example demonstrates finding the elevation of points in a
+data set oriented along the x axis. Points between $x=-1$ and $x=1$ are
+considered. The scale and bias is set to give the distance from the origin
+along the x-axis in the positive direction.
+
+\begin{daxexample}{Elevation worklet.}
+#include <dax/worklet/Elevation.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void Elevation(const GridType &grid,
+               dax::cont::ArrayHandle<dax::Scalar> &outPointElevation)
+{
+  dax::workletElevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
+                                  dax::make_Vector3(1.0, 0.0, 0.0),
+                                  dax::make_Vector2(-1.0, 1.0));
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(elevation, grid.GetPointCoordinates(), outPointElevation);
+}
+\end{daxexample}
+
+\subsection{Magnitude}
+
+The \daxworklet{Magnitude} worklet computes the magnitude of a field of
+vectors. The field can be either a point field or a cell field (or really,
+just any array).
+
+\begin{daxexample}{Magnitude worklet.}
+#include <dax/worklet/Magnitude.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+DAX_CONT_EXPORT
+void RunMagnitude(const dax::cont::ArrayHandle<dax::Vector3> &inField,
+                  dax::cont::ArrayHandle<dax::Scalar> &outField)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::Magnitude(), inField, outField);
+}
+\end{daxexample}
+
+\subsection{Marching Cubes}
+
+The Marching Cubes worklet takes a volume and extracts the contour surface
+where a field value is equal to a given value.
+
+\fix{TODO: Running this worklet needs to be simplified. The scheduler needs
+  to be cleaned up to remove the helper classes.}
+
+Running the Marching Cubes worklet is a two step process. In the first
+step, \daxworklet{MarchingCubesClassify} identifies how many polygons are
+going to be generated for every input cell. In the second step,
+\daxworklet{MarchingCubesGenerate} creates the triangles that make up the
+surface.
+
+\begin{daxexample}{Marching Cubes worklet.}
+#include <dax/worklet/MarchingCubes.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/GenerateInterpolatedCells.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunMarchingCubes(const GridType &inGrid,
+                      const dax::cont::ArrayHandle<FieldType> &inPointData,
+                      dax::Scalar isovalue,
+                      dax::cont::UnstructuredGrid<dax::CellTagTriangle> &outGrid)
+{
+  dax::cont::Scheduler<> scheduler;
+
+  dax::cont::ArrayHandle<dax::Id> classification;
+  scheduler.Invoke(dax::worklet::MarchingCubesClassify(isovalue),
+                   inGrid,
+                   inPointData,
+                   classification);
+
+  dax::cont::GenerateInterpolatedCells<
+    dax::worklet::MarchingCubesGenerate, dax::cont::ArrayHandle<dax::Id> >
+        generate(dax::worklet::MarchingCubesGenerate(isovalue), classification);
+  scheduler.Invoke(generate, inGrid, outGrid, inPointData);
+}
+\end{daxexample}
+
+\subsection{Point Data to Cell Data}
+\label{sec:worklet:PointDataToCellData}
+
+The \daxworklet{PointDataToCellData} worklet takes a topology and a field
+and averages the value of the field in each point. For each cell, it
+interpolates a point field to the center of the cell. A similar worklet
+named cell average does a similar operation except that simply averages the
+field values (Section~\ref{sec:worklet:CellAverage}), which may be
+different than the interpolation.
+
+The following example uses \daxworklet{PointDataToCellData} to find the
+coordinates of each cell center.
+
+\begin{daxexample}{Point data to cell data worklet.}
+#include <dax/worklet/PointDataToCellData.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunPointDataToCellData(const GridType &grid,
+                            dax::cont::ArrayHandle<dax::Scalar> &outCellCenters)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::PointDataToCellData(),
+                   grid,
+                   grid.GetPointCoordinates(),
+                   Centers);
+}
+\end{daxexample}
+
+\subsection{Sine}
+
+The \daxworklet{Sine} worklet computes the sine of a field. The field
+can be either a point field or a cell field (or really, just any array).
+
+\begin{daxexample}{Sine worklet.}
+#include <dax/worklet/Sine.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename FieldType>
+DAX_CONT_EXPORT
+void RunSine(const dax::cont::ArrayHandle<FieldType> &inField,
+             dax::cont::ArrayHandle<FieldType> &outField)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::Sine(), inField, outField);
+}
+\end{daxexample}
+
+\subsection{Slice}
+
+The slice worklet takes a volume and intersects it with a plane.
+
+\fix{TODO: Running this worklet needs to be simplified. The scheduler needs
+  to be cleaned up to remove the helper classes.}
+
+Running the slice worklet is a two step process. In the first step,
+\daxworklet{SliceClassify} identifies how many polygons are going to be
+generated for every input cell. In the second step,
+\daxworklet{SliceGenerate} creates the triangles that make up the surface
+that is the intersection of the volume and the plane.
+
+\begin{daxexample}{Slice worklet.}
+#include <dax/worklet/Slice.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/GenerateInterpolatedCells.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunSlice(const GridType &inGrid,
+              const dax::cont::ArrayHandle<FieldType> &inPointData,
+              dax::Scalar isovalue,
+              dax::cont::UnstructuredGrid<dax::CellTagTriangle> &outGrid)
+{
+  dax::cont::Scheduler<> scheduler;
+
+  dax::cont::ArrayHandle<dax::Id> classification;
+  scheduler.Invoke(dax::worklet::SliceClassify(isovalue),
+                   inGrid,
+                   inPointData,
+                   classification);
+
+  dax::cont::GenerateInterpolatedCells<
+    dax::worklet::SliceGenerate, dax::cont::ArrayHandle<dax::Id> >
+        generate(dax::worklet::SliceGenerate(isovalue), classification);
+  scheduler.Invoke(generate, inGrid, outGrid, inPointData);
+}
+\end{daxexample}
+
+\subsection{Square}
+
+The \daxworklet{Square} worklet computes the square of all the values in a
+field. (It finds a component-wise square in the case of vector types.) The
+field can be either a point field or a cell field (or really, just any
+array).
+
+\begin{daxexample}{Square worklet.}
+#include <dax/worklet/Square.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+
+template<typename FieldType>
+DAX_CONT_EXPORT
+void RunSquare(const dax::cont::ArrayHandle<FieldType> &inField,
+               dax::cont::ArrayHandle<FieldType> &outField)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::Square(), inField, outField);
+}
+\end{daxexample}
+
+\subsection{Tetrahedralize}
+
+The \daxworklet{Tetrahedralize} takes a data set and divides each cell into
+a group of simplicies (tetrahedra) that comprise the volume.
+
+\fix{TODO: Running this worklet needs to be simplfied. The scheduler needs
+  to be cleaned up to remove the helper classes. There is also some
+  hinkiness involved with specifing the count (classification) array.}
+
+\begin{daxexample}{Tetrahedralize worklet.}
+#include <dax/worklet/Tetrahedralize.h>
+
+#include <dax/cont/ArrayHandleConstant.h>
+#include <dax/cont/GenerateTopology.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+template<typename GridType>
+DAX_CONT_EXPORT
+void RunTetrahedralize(const GridType &inGrid,
+                       dax::cont::UnstructuredGrid<dax::CellTagTetrahedron> &outGrid)
+{
+  typedef dax::cont::ArrayHandleConstant<dax::Id> ClassificationType;
+  ClassificationType classification(5, inGrid.GetNumberOfCells());
+
+  dax::cont::GenerateTopology<dax::worklet::Tetrahedralize,ClassificationType>
+      generate(classification);
+  generate.SetRemoveDuplicatePoints(false);
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(generate, inGrid, outGrid);
+}
+\end{daxexample}
+
+\subsection{Threshold}
+
+The threshold worklet takes a grid and extracts all cells with field values
+within a range specified by a minimum and maximum value.
+
+\fix{TODO: Running this worklet needs to be simplified. The scheduler needs
+  to be cleaned up to remove the helper classes.}
+
+Running the threshold worklet is a two step process. In the first step,
+\daxworklet{ThresholdClassify} identifies how many cells are going to be
+generated for every input cell (0 or 1). In the second step,
+\daxworklet{ThresholdTopology} creates a new grid with the passed cells.
+
+\begin{daxexample}{Threshold worklet.}
+#include <dax/worklet/Threshold.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/GenerateTopology.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+template<typename CellType, typename FieldType>
+DAX_CONT_EXPORT
+void RunThreshold(const dax::cont::UnstructuredGrid<CellType> &inGrid,
+                  const dax::cont::ArrayHandle<FieldType> &inPointField,
+                  FieldType thresholdMin,
+                  FieldType thresholdMax,
+                  dax::cont::UnstructuredGrid<CellType> &outGrid,
+                  dax::cont::ArrayHandle<FieldType> &outPointField)
+{
+  dax::cont::Scheduler<> scheduler;
+  
+  typedef dax::cont::ArrayHandle<dax::Id> ClassificationType;
+  ClassificationType classification;
+
+  scheduler.Invoke(dax::worklet::ThresholdClassify<FieldType>(thresholdMin, thresholdMax),
+                   inGrid,
+                   inPointField,
+                   classification);
+
+  dax::cont::GenerateTopology<dax::worklet::ThresholdTopology,ClassificationType>
+      generate(classification);
+
+  scheduler.Invoke(generate, inGrid, outGrid);
+
+  generate.CompactPointField(inPointField, outPointField);
+}
+\end{daxexample}
 
 
 \section{Control Environment}
 \label{sec:ControlEnvironment}
+
+\index{control~environment|(}
 
 \subsection{Device Adapter Tag}
 \label{sec:DeviceAdapterTag}
@@ -615,9 +1061,13 @@ struct LessTotalOrder
 
 \fix{What about implementing execution memory management?}
 
+\index{control~environment|)}
+
 
 \section{Execution Environment}
 \label{sec:ExecutionEnvironment}
+
+\index{execution~environment|(}
 
 \subsection{Creating Worklets}
 \label{sec:CreatingWorklets}
@@ -631,7 +1081,11 @@ struct LessTotalOrder
 \subsection{Math}
 \label{sec:Math}
 
+\index{math|(}
+
 \fix{Portable math functions}
+
+\index{math|)}
 
 \subsection{Cells and Operations}
 
@@ -639,6 +1093,8 @@ struct LessTotalOrder
 \fix{-dax::exec::CellVertices} \\
 \fix{-dax::exec::CellField} \\
 \fix{-cell operations}
+
+\index{execution~environment|)}
 
 
 \section{OpenGL Interoperability}

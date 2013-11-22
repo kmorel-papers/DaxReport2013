@@ -394,7 +394,7 @@ Here is a simple example of using \dax{TypeTraits} to implement a generic
 function that behaves like the modulus operator (\textcode{\%}) for all
 types including floating points and vectors.
 
-\begin{daxexample}[ex:TypeTraits]{Using \protect \dax{TypeTraits} for a generic modulus.}
+\begin{daxexample}[ex:TypeTraits]{Using \textidentifier{TypeTraits} for a generic modulus.}
 #include <dax/TypeTraits.h>
 
 template<typename T>
@@ -504,7 +504,7 @@ following code uses vector traits to simplify the implementation of less
 functors\index{less} that define an ordering that can be used for sorting
 and other operations.
 
-\begin{daxexample}{Using \protect \dax{VectorTraits} for less functors.}
+\begin{daxexample}{Using \textidentifier{VectorTraits} for less functors.}
 #include <dax/VectorTraits.h>
 
 // This functor provides a total ordering of vectors. Every compared vector
@@ -1177,12 +1177,10 @@ class MyElevationScheduler
 public:
   void DoSchedule()
   {
-    dax::worklet::Elevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
-                                      dax::make_Vector3(1.0, 0.0, 0.0),
-                                      dax::make_Vector2(-1.0, 1.0));
-
     dax::cont::Scheduler<DeviceAdapter> scheduler;
-    scheduler.Invoke(elevation, this->Grid.GetPointCoordinates(), this->OutPointElevation);
+    scheduler.Invoke(dax::Worklet::Elevation(),
+                     this->Grid.GetPointCoordinates(),
+                     this->OutPointElevation);
 \end{daxexample}
 
 \index{device~adapter|)}
@@ -1190,14 +1188,142 @@ public:
 \subsection{Array Handle}
 \label{sec:ArrayHandle}
 
-\fix{--Using} \\
-\fix{--Interface to device} \\
-\fix{---Prepare\textasteriskcentered} \\
+\index{array~handle|(}
+
+An \keyterm{array handle}, implemented with the \daxcont{ArrayHandle}
+class, manages an array of data that can be accessed or manipulated by Dax
+algorithms. It is typical to construct an array handle in the control
+environment to pass data to an algorithm running in the execution
+environment. It is also typical for an algorithm running in the execution
+environment to allocate and populate an array handle, which can then be
+read back in the control environment. It is also possible for an array
+handle to manage data created by one Dax algorithm and passed to another,
+remaining in the execution environment the whole time and never copied to
+the control environment.
+
+The array handle may have up to two copies of the array, one for the
+control environment and one for the execution environment. However,
+depending on the device and how the array is being used, the array handle
+will only have one copy when possible. Copies between the environments are
+implicit and lazy. They are copied only when an operation needs data in an
+environment where the data is not.
+
+\daxcont{ArrayHandle} behaves like a shared smart pointer in that when the
+C++ object is copied, each copy holds a reference to the same array. These
+copies are reference counted so that when all copies of the
+\daxcont{ArrayHandle} are destroyed, any allocated memory is released.
+
+\subsubsection{Creating Array Handles}
+
+\daxcont{ArrayHandle} is a templated class with three template
+parameters. The first template parameter is the only one required and
+specifies the base type of the entries in the array. The second template
+parameter specifies the container used when storing data in the control
+environment. Containers are discussed later in this section, and for now we
+will use the default value. The third template parameter is a device
+adpater tag that specifies what device is used in the execution
+environment. Device adapter tags are described in
+Section~\ref{sec:DeviceAdapterTag}. Most of the examples here will use the
+default device adapter.
+
+\begin{daxexample}{Declaration of the \protect\daxcont{ArrayHandle} templated class.}
+template<
+    typename T,
+    class ArrayContainerControl = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    class DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+class ArrayHandle;
+\end{daxexample}
+
+There are multiple ways to create and populate an array handle. The default
+\daxcont{ArrayHandle} constructor will create an empty array with nothing
+allocated in either the control or execution environment. This is
+convienient for creating arrays used as the output for algorithms.
+
+\begin{daxexample}{Creating an \textidentifier{ArrayHandle} for output data.}
+dax::cont::ArrayHandle<dax::Scalar> outputArray;
+\end{daxexample}
+
+Constructing an \daxcont{ArrayHandle} that points to a provided C array or
+\textcode{std::vector} is straightforward with the
+\daxcont{make\_ArrayHandle} functions. These functions will make an array
+handle that points to the array data that you provide.
+
+\begin{daxexample}{Creating an \textidentifier{ArrayHandle} that points to a provided C array.}
+dax::Scalar dataBuffer[50];
+// Populate dataBuffer with meaningful data. Perhaps read data from a file.
+
+dax::cont::ArrayHandle<dax::Scalar> inputArray = dax::cont::make_ArrayHandle(dataBuffer,50);
+\end{daxexample}
+
+\begin{daxexample}[ex:ArrayHandleFromVector]{Creating an \textidentifier{ArrayHandle} that points to a provided \textcode{std::vector}.}
+std::vector<dax::Scalar> dataBuffer;
+// Populate dataBuffer with meaningful data. Perhaps read data from a file.
+
+dax::cont::ArrayHandle<dax::Scalar> inputArray = dax::cont::make_ArrayHandle(dataBuffer);
+\end{daxexample}
+
+\emph{Be aware} that \daxcont{make\_ArrayHandle} makes a shallow pointer
+copy. This means that if you change or delete the data provided, the
+internal state of \daxcont{ArrayHandle} becomes invalid and undefined
+behavior can ensue. The most common manifestation of this error happens
+when a \textcode{std::vector} goes out of scope. This subtle interaction
+will cause the \daxcont{ArrayHandle} to point to an unallocated portion of
+the memory heap. For example, if the code in
+Example~\ref{ex:ArrayHandleFromVector} where to be placed within a callable
+function or method, it could cause the \daxcont{ArrayHandle} to become
+invalid.
+
+\begin{daxexample}{Invalidating an \textidentifier{ArrayHandle} by letting the source \textcode{std::vector} leave scope.}
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar> BadDataLoad()
+{
+  std::vector<dax::Scalar> dataBuffer;
+  // Populate dataBuffer with meaningful data. Perhaps read data from a file.
+
+  dax::cont::ArrayHandle<dax::Scalar> inputArray = dax::cont::make_ArrayHandle(dataBuffer);
+
+  return inputArray;
+  // THIS IS WRONG! At this point dataBuffer goes out of scope and deletes its memory.
+  // However, inputArray has a pointer to that memory, which becomes an invalid pointer
+  // in the returned object. Bad things will happen when the ArrayHandle is used.
+}
+
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar> SafeDataLoad()
+{
+  std::vector<dax::Scalar> dataBuffer;
+  // Populate dataBuffer with meaningful data. Perhaps read data from a file.
+
+  dax::cont::ArrayHandle<dax::Scalar> tmpArray = dax::cont::make_ArrayHandle(dataBuffer);
+
+  // This copies the data from one ArrayHandle to another (in the execution environment).
+  // Although it is an extraneous copy, it is usually pretty fast on a parallel device.
+  // Another option is to make sure that the buffer in the std::vector never goes out
+  // of scope before all the ArrayHandle references, but this extra step allows the
+  // ArrayHandle to manage its own memory and ensure everything is valid.
+  dax::cont::ArrayHandle<dax::Scalar> inputArray;
+  dax::cont::DeviceAdapterAlgorithm<DAX_DEFAULT_DEVICE_ADAPTER_TAG>::Copy(
+      tmpArray, inputArray);
+
+  return inputArray;
+  // This is safe.
+}
+\end{daxexample}
+
+\fix{Example broken code. vector out of scope}
+
+\noindent
+\fix{--Array Portals} \\
+\fix{--Geting data from} \\
 \fix{--Containers} \\
 \fix{---Basic} \\
 \fix{---Adapting data structures} \\
 \fix{---Implicit/derived} \\
 \fix{---Transfer} \\
+\fix{--Interface to device} \\
+\fix{---Prepare\textasteriskcentered} \\
+
+\index{array~handle|)}
 
 \subsection{Grid Structures}
 \label{sec:GridStructures}

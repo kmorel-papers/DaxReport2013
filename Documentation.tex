@@ -718,7 +718,7 @@ data set oriented along the x axis. Points between $x=-1$ and $x=1$ are
 considered. The scale and bias is set to give the distance from the origin
 along the x-axis in the positive direction.
 
-\begin{daxexample}{Elevation worklet.}
+\begin{daxexample}[ex:Elevation]{Elevation worklet.}
 #include <dax/worklet/Elevation.h>
 
 #include <dax/cont/ArrayHandle.h>
@@ -729,9 +729,9 @@ DAX_CONT_EXPORT
 void Elevation(const GridType &grid,
                dax::cont::ArrayHandle<dax::Scalar> &outPointElevation)
 {
-  dax::workletElevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
-                                  dax::make_Vector3(1.0, 0.0, 0.0),
-                                  dax::make_Vector2(-1.0, 1.0));
+  dax::worklet::Elevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
+                                    dax::make_Vector3(1.0, 0.0, 0.0),
+                                    dax::make_Vector2(-1.0, 1.0));
 
   dax::cont::Scheduler<> scheduler;
   scheduler.Invoke(elevation, grid.GetPointCoordinates(), outPointElevation);
@@ -1011,10 +1011,181 @@ void RunThreshold(const dax::cont::UnstructuredGrid<CellType> &inGrid,
 
 \index{control~environment|(}
 
+The control environment is where code that interfaces with applications and
+I/O devices. The associated API is designed for users that want to use the
+Dax toolkit to analyze their data using provided or supplied worklets. Code
+for the control environment is designed to run on a single thread (or one
+single thread per process in an MPI job).
+
+Most users of the Dax toolkit will have some interaction with the Dax
+toolkit, for you cannot define data sturctures or execute any algorithms
+without it.
+
 \subsection{Device Adapter Tag}
 \label{sec:DeviceAdapterTag}
 
-\fix{Write}
+\index{device~adapter|(}
+
+The Dax toolkit uses a feature called a device adapter to define what type
+of device will be used to run algorithms. The device adapter encapsulates
+the device-specific code required to port to various devices. More
+information on the function of the device adapter are given in
+Section~\ref{sec:DeviceIndependence}.
+
+The device adapter is identified by a \keyterm{device adapter tag}.
+\index{device~adapter~tag} This tag, which is simply an empty struct type,
+is used as the template parameter for several classes in the Dax control
+environment and causes these classes to direct their work to a particular
+device.
+
+There are two ways to select a device adapter. The first is to make a
+global selection of a default device adapter. The second is to specify a
+specific device adapter as a template parameter.
+
+\subsubsection{Default Device Adapter}
+
+A default device adapter tag is specified in
+\daxheader{dax/cont}{DeviceAdapter.h} (although it can also by specified in
+many other Dax headers via header dependencies). If no other information is
+given, Dax attempts to choose a default device adapter that is a best fit
+for the system it is compiled on. Dax currently select the default device
+adapter with the following sequence of conditions.
+
+\begin{itemize}
+\item \index{CUDA} If the source code is being compiled by CUDA, the CUDA
+  device is used.
+\item \index{OpenMP} If the CUDA compiler is not being used and the current
+  compiler supports OpenMP, then the OpenMP device is used.
+\item \index{Intel Threading Building Blocks} \index{TBB} If the compiler
+  supports neither CUDA nor OpenMP and the Dax Toolkit was configured to
+  use Intel Threading Building Blocks, then that device is used.
+\item \index{serial} If no parallel device adapters are found, then the Dax
+  Toolkit falls back to a serial device.
+\end{itemize}
+
+You can also set the default device adapter specifically by setting the
+\daxmacro{DAX\_DEVICE\_ADAPTER} macro. This macro must be set \emph{before}
+including any Dax header files. You can set \daxmacro{DAX\_DEVICE\_ADAPTER}
+to any one of the following.
+
+\begin{description}
+\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_SERIAL}] Performs all computation on
+  the same single thread as the control environment. This device is useful
+  for debugging. This device is always available.
+\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_CUDA}] Uses a CUDA capabile GPU
+  device. For this device to work, Dax must be configured to use CUDA and
+  the code must be compiled by the CUDA \textfilename{nvcc} compiler.
+\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_OPENMP}] Uses OpenMP compiler
+  extensions to run algorithms on multiple threads. For this device to
+  work, Dax must be configured to use OpenMP and the code must be compiled
+  with a compiler that supports OpenMP pragmas.
+\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_TBB}] Uses the Intel Threading
+  Building Blocks library to run algorithms on multiple threads. For this
+  device to work, Dax must be configured to use TBB and the executable must
+  be linked to the TBB library.
+\end{description}
+
+These macros provide a useful mechanism for quickly reconfiguring code to
+run on different devices. The following example shows a typical block of
+code at the top of a source file that could be used for quick
+reconfigurations.
+
+\begin{daxexample}{Macros to port Dax code among different devices}
+// Uncomment one (and only one) of the following to reconfigure the Dax
+// code to use a particular device. Comment them all to automaticall pick a
+// device.
+//#define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_SERIAL
+#define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_CUDA
+//#define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_OPENMP
+//#define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_TBB
+
+#include <dax/cont/DeviceAdapter.h>
+\end{daxexample}
+
+The default device adapter can always be overridden by specifying a device
+adapter tag, as described in the next section. There is actually one more
+internal default device addapter named
+\daxmacro{DAX\_DEVICE\_ADAPTER\_ERROR} that will cause a compile error if
+any component attempts to use the default device adapter. This feature is
+most often used in testing code to check when device adapters should be
+specified.
+
+\subsubsection{Specifying Device Adapter Tags}
+
+In addition to setting a global default device adapter, it is possible to
+explicitly set which device adapter to use in any feature provided by
+Dax. This is done by providing a device adapter tag as a template argument
+to Dax templated objects. The following device adapter tags are available
+in Dax.
+
+\begin{description}
+\item[\daxcont{DeviceAdapterTagSerial}] \index{serial} Performs all
+  computation on the same single thread as the control environment. This
+  device is useful for debugging. This device is always available. This tag
+  is defined in \daxheader{dax/cont}{DeviceAdapterSerial.h}.
+\item[\daxcudacont{DeviceAdapterTagCuda}] \index{CUDA} Uses a CUDA capabile
+  GPU device. For this device to work, Dax must be configured to use CUDA
+  and the code must be compiled by the CUDA \textfilename{nvcc}
+  compiler. This tag is defined in
+  \daxheader{dax/cuda/cont}{DeviceAdapterCuda.h}.
+\item[\daxopenmpcont{DeviceAdapterTagOpenMP}] \index{OpenMP} Uses OpenMP
+  compiler extensions to run algorithms on multiple threads. For this
+  device to work, Dax must be configured to use OpenMP and the code must be
+  compiled with a compiler that supports OpenMP pragmas. This tag is
+  defined in \daxheader{dax/openmp/cont}{DeviceAdapterOpenMP.h}.
+\item[\daxtbbcont{DeviceAdapterTagTBB}]
+  \index{Intel Threading Building Blocks} \index{TBB} Uses the Intel
+  Threading Building Blocks library to run algorithms on multiple
+  threads. For this device to work, Dax must be configured to use TBB and
+  the executable must be linked to the TBB library. This tag is defined in
+  \daxheader{dax/tbb/cont}{DeviceAdapterTBB.h}.
+\end{description}
+
+The following example schedules the elevation worklet much like shown in
+Example~\ref{ex:Elevation} on page~\pageref{ex:Elevation} but also
+specifies using the Intel Threading Building blocks device adapter.
+\index{Intel Threading Building Blocks} \index{TBB}
+In particular, consider the template parameter of the \daxcont{Scheduler}
+class.
+\begin{daxexample}{Calling the Elevation worklet with a specific device adapter.}
+dax::worklet::Elevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
+                                  dax::make_Vector3(1.0, 0.0, 0.0),
+                                  dax::make_Vector2(-1.0, 1.0));
+
+dax::cont::Scheduler<dax::tbb::cont::DeviceAdapterTagTBB> scheduler;
+scheduler.Invoke(elevation, grid.GetPointCoordinates(), outPointElevation);
+\end{daxexample}
+
+When structuring your code to always specify a particular device adapter,
+consider setting the default device adapter (with the
+\daxmacro{DAX\_DEVICE\_ADAPTER} macro) to
+\daxmacro{DAX\_DEVICE\_ADAPTER\_ERROR}. This will cause the compiler to
+produce an error if any object is instantiated with the default device
+adapter, which checks to make sure the code properly specifies every device
+adapter parameter.
+
+The Dax toolkit also defines a macro named
+\daxmacro{DAX\_DEFAULT\_DEVICE\_ADAPTER\_TAG} that can be used in place of
+an explicit device adapter tag to use the default tag. This macro is used
+to create new templates that have template parameters for device adapters
+that can use the default. The following example has a (rather artificial)
+declaration of a helper class for executing the elevation worklet.
+\begin{daxexample}{Declaring a template with a default device adapter.}
+template<typename DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+class MyElevationScheduler
+{
+public:
+  void DoSchedule()
+  {
+    dax::worklet::Elevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
+                                      dax::make_Vector3(1.0, 0.0, 0.0),
+                                      dax::make_Vector2(-1.0, 1.0));
+
+    dax::cont::Scheduler<DeviceAdapter> scheduler;
+    scheduler.Invoke(elevation, this->Grid.GetPointCoordinates(), this->OutPointElevation);
+\end{daxexample}
+
+\index{device~adapter|)}
 
 \subsection{Array Handle}
 \label{sec:ArrayHandle}

@@ -75,6 +75,10 @@
                    VectorTraits,ComponentType,HasMultipleComponents,
                    VectorTraitsTagMultipleComponents,
                    VectorTraitsTagSingleComponent,
+                   DeviceAdapterTagSerial,
+                   DeviceAdapterTagCuda,
+                   DeviceAdapterTagOpenMP,
+                   DeviceAdapterTagTBB,
                    CellAverage,
                    CellDataToPointDataGenerateKeys,CellDataToPointDataReduceKeys,
                    CellGradient,
@@ -97,8 +101,15 @@
                    CellTagTetrahedron, CellTagTriangle, CellTagVectex,
                    CellTagVoxel, CellTagWedge,
                    ParametricCoordinates, CellDerivative},
-  morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT},
-  morekeywords={[4]dax,exec,cont,worklet,math},
+  morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT,
+                   DAX_DEVICE_ADAPTER,
+                   DAX_DEVICE_ADAPTER_SERIAL,
+                   DAX_DEVICE_ADAPTER_CUDA,
+                   DAX_DEVICE_ADAPTER_OPENMP,
+                   DAX_DEVICE_ADAPTER_TBB,
+                   DAX_DEFAULT_DEVICE_ADAPTER_TAG,
+                   },
+  morekeywords={[4]dax,exec,cont,worklet,math,cuda,openmp,tbb},
   morekeywords={[5]ControlSignature, ExecutionSignature}
 }
 \lstset{language=Dax}
@@ -133,9 +144,9 @@
 \newcommand*{\writenamespacetwo}[2]{%
   \writenamespaceone{#1}\textcode{:\colonhyp}\textnamespace{#2}}
 \newcommand*{\writenamespacethree}[3]{%
-  \writenamespacetwo{#1,#2}\textcode{:\colonhyp}\textnamespace{#3}}
+  \writenamespacetwo{#1}{#2}\textcode{:\colonhyp}\textnamespace{#3}}
 \newcommand*{\writenamespacefour}[4]{%
-  \writenamespacethree{#1,#2,#3}\textcode{:\colonhyp}\textnamespace{#4}}
+  \writenamespacethree{#1}{#2}{#3}\textcode{:\colonhyp}\textnamespace{#4}}
 
 \newcommand*{\indexnamespaceone}[1]{%
   \index{#1 namespace}\index{namespace!#1}}
@@ -184,14 +195,26 @@
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{cuda}\indexnamespacetwo{dax}{cuda}}%
              {\writeindexidentifiertwo{dax}{cuda}{#1}}}
+\newcommand*{\daxcudacont}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacethree{dax}{cuda}{cont}\indexnamespacethree{dax}{cuda}{cont}}%
+             {\writeindexidentifierthree{dax}{cuda}{cont}{#1}}}
 \newcommand*{\daxopenmp}[1]{%
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{openmp}\indexnamespacetwo{dax}{openmp}}%
              {\writeindexidentifiertwo{dax}{openmp}{#1}}}
+\newcommand*{\daxopenmpcont}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacethree{dax}{openmp}{cont}\indexnamespacethree{dax}{openmp}{cont}}%
+             {\writeindexidentifierthree{dax}{openmp}{cont}{#1}}}
 \newcommand*{\daxtbb}[1]{%
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{tbb}\indexnamespacetwo{dax}{tbb}}%
              {\writeindexidentifiertwo{dax}{tbb}{#1}}}
+\newcommand*{\daxtbbcont}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacethree{dax}{tbb}{cont}\indexnamespacethree{dax}{tbb}{cont}}%
+             {\writeindexidentifierthree{dax}{tbb}{cont}{#1}}}
 
 \newcommand*{\daxopengl}[1]{%
   \ifthenelse{\equal{#1}{}}%
@@ -276,6 +299,8 @@
 }
 
 \begin{document}
+
+\sloppy
 
 \maketitle
 

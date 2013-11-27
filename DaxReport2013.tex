@@ -84,6 +84,7 @@
                    DeviceAdapterTagOpenMP,
                    DeviceAdapterTagTBB,
                    ArrayContainerControlTagBasic,
+                   ArrayContainerControl,
                    CellAverage,
                    CellDataToPointDataGenerateKeys,CellDataToPointDataReduceKeys,
                    CellGradient,
@@ -119,7 +120,7 @@
                    DAX_ARRAY_CONTAINER_CONTROL_ERROR,
                    DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG
                    },
-  morekeywords={[4]dax,exec,cont,worklet,math,cuda,openmp,tbb},
+  morekeywords={[4]dax,exec,cont,worklet,math,cuda,openmp,tbb,internal,detail},
   morekeywords={[5]ControlSignature, ExecutionSignature}
 }
 \lstset{language=Dax}
@@ -188,6 +189,10 @@
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{cont}\indexnamespacetwo{dax}{cont}}%
              {\writeindexidentifiertwo{dax}{cont}{#1}}}
+\newcommand*{\daxcontinternal}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacethree{dax}{cont}{internal}\indexnamespacethree{dax}{cont}{internal}}%
+             {\writeindexidentifierthree{dax}{cont}{internal}{#1}}}
 \newcommand*{\daxexec}[1]{%
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{exec}\indexnamespacetwo{dax}{exec}}%

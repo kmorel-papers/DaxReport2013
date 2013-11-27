@@ -1402,9 +1402,9 @@ An array portal object contains each of the following:
 \end{description}
 
 The following code example defines an array portal for a simple C array of
-scalar values. This definition has no practical value (it is covered by
-more general array portals in the Dax toolkit), but demonstrates the
-function of each component.
+scalar values. This definition has no practical value (it is covered by the
+more general \daxcontinternal{ArrayPortalFromIterators}), but demonstrates
+the function of each component.
 
 \begin{daxexample}{A simple array portal implementation.}
 #include <dax/Types.h>
@@ -1424,7 +1424,7 @@ public:
   SimpleScalarArrayPortal() : Array(NULL), NumberOfValues(0) {  }
 
   DAX_EXEC_CONT_EXPORT
-  dax::Id GetNumberOfValues GetNumberOfValues() const { return this->GetNumberOfValues; }
+  dax::Id GetNumberOfValues() const { return this->GetNumberOfValues; }
 
   DAX_EXEC_CONT_EXPORT
   ValueType Get(dax::Id index) const { return this->Array[index]; }
@@ -1575,6 +1575,265 @@ dax::cont::ArrayHandle<
 
 \index{array~handle!adapting|(}
 \index{container!adapting|(}
+
+The intention of the container parameter for \daxcont{ArrayHandle} is to
+implement the strategy design pattern\lcite{GoF} to enable the Dax toolkit
+to interface directly with the data of any third party code source. The Dax
+toolkit is designed to work with data originating in other libraries or
+applications. By creating a new type of array container, the entire Dax
+toolkit can be adapted to new kinds of data structures.
+
+In this section we demonstrate the steps required to adapt the array handle
+to a data structure provided by a third party. For the purposes of the
+example, let us say that some fictitious library named ``foo'' has a simple
+structure named \textcode{FooFields} that holds the field values for a
+particular part of a mesh, and then maintain the field values for all
+locations in a mesh in a \textcode{std::deque} object.
+
+\begin{daxexample}{Fictitious field storage used in custom array container examples.}
+#include <deque>
+
+struct FooFields {
+  float Pressure;
+  float Temperature;
+  float Velocity[3];
+  // And so on...
+};
+
+typedef std::deque<FooFields> FooFieldsDeque;
+\end{daxexample}
+
+The Dax toolkit expects separate arrays for each of the fields rather than
+a single array containing a structure holding all of the fields. However,
+rather than copy each field to its own array, we can create a container for
+each field that points directly to the data in a \textcode{FooFieldsDeque}
+object.
+
+The first step in creating an adapter container is to create a control
+environment array portal to the data. This is described in more detail
+startign on page~\pageref{sec:ArrayPortals} and is generally
+straightforward for simple containers like this. Here is an example
+implementation for our \textcode{FooFieldsDeque} container.
+
+\begin{daxexample}[ex:ArrayPortalAdapter]{Array portal to adapt a third-party container to Dax.}
+#include <dax/cont/Assert.h>
+#include <dax/cont/internal/IteratorFromArrayPortal.h>
+
+// DequeType expected to be FooFieldsDeque or const FooFieldsDeque
+template<typename DequeType>
+class ArrayPortalFooPressure
+{
+public:
+  typedef dax::Scalar ValueType;
+
+  DAX_CONT_EXPORT
+  ArrayPortalFooPressure(DequeType *container) : Container(container) {  }
+
+  DAX_CONT_EXPORT
+  dax::Id GetNumberOfValues() const {
+    return static_cast<dax::Id>(this->Container->size());
+  }
+
+  DAX_CONT_EXPORT
+  dax::Scalar Get(dax::Id index) const {
+    DAX_ASSERT_CONT(index >= 0);
+    DAX_ASSERT_CONT(index < this->GetNumberOfValues());
+    return static_cast<dax::Scalar>((*this->Container)[index].Pressure);
+  }
+
+  DAX_CONT_EXPORT
+  dax::Scalar Set(dax::Id index, dax::Scalar value) const {
+    DAX_ASSERT_CONT(index >= 0);
+    DAX_ASSERT_CONT(index < this->GetNumberOfValues());
+    (*this->Container)[index].Pressure = value;
+  }
+
+  typedef dax::cont::internal::IteratorFromArrayPortal<ArrayPortalFooPressure> IteratorType;
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorBegin() const {
+    return IteratorType(*this, 0);
+  }
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorEnd() const {
+    return IteratorType(*this, this->GetNumberOfValues());
+  }
+
+private:
+  DequeType *Container;
+};
+\end{daxexample}
+
+The next step in creating an adapter container is to define a tag for the
+adapter. We shall call ours
+\textcode{ArrayContainerControlTagFooPressure}. Then, we need to create a
+specialization of the templated \daxcontinternal{ArrayContainerControl}
+class. The \textidentifier{ArrayHandle} will instantiate an object using
+the array container tag we give it, and we define our own specialization so
+that it runs our interface into the code.
+
+\daxcontinternal{ArrayContainerControl} has two template arguments: the
+base type of the array and the array container tag.
+
+\begin{daxexample}{Prototype for \protect\daxcontinternal{ArrayContainerControl}.}
+namespace dax {
+namespace cont {
+namespace internal {
+
+template<typename T, typename ArrayContainerControlTag>
+class ArrayContainerControl;
+
+}
+}
+}
+\end{daxexample}
+
+The \daxcontinternal{ArrayContainerControl} must define the following items.
+\begin{description}
+\item[\textcode{ValueType}] A \textcode{typedef} of the type for each item
+  in the array. This is the same type as the first template argument.
+\item[\textcode{PortalType}] The type of an array portal that can be used
+  to access the underlying data. This array portal needs to work only in
+  the control environment.
+\item[\textcode{PortalConstType}] A read-only (const) version of
+  \textcode{PortalType}.
+\item[\textcode{GetPortal}] A method that returns an array portal of type
+  \textcode{PortalType} that can be used to access the data manged in this
+  container.
+\item[\textcode{GetPortalConst}] Same as \textcode{GetPortal} except it
+  returns a read-only (const) array portal.
+\item[\textcode{GetNumberOfValues}] A method that returns the number of
+  values the container is currently allocated for.
+\item[\textcode{Allocate}] A method that allocates the array to a given
+  size. An values stored in the previous allocation may be destroyed.
+\item[\textcode{Shrink}] A method like \textcode{Allocate} with two
+  differences. First, the size of the allocation must be smaller than the
+  existing allocation when the method is called. Second, any values
+  currently stored in the array will be valid after the array is
+  resized. This constrained form of allocation allows the array to be
+  resized and values valid without ever having to copy data.
+\item[\textcode{ReleaseResources}] A method that instructs the container to
+  free all of its memory.
+\end{description}
+
+The following provides an example implementation of our adapter to a
+\textcode{FooFieldsDeque}. It relies on the
+\textcode{ArrayPortalFooPressure} provided in
+Example~\ref{ex:ArrayPortalAdapter}.
+
+\begin{daxexample}{Array container to adapt a third-party container to Dax.}
+// Includes or definition for ArrayPortalFooPressure
+
+struct ArrayContainerControlTagFooPressure {  };
+
+namespace dax {
+namespace cont {
+namespace internal {
+
+template<>
+class ArrayContainerControl<dax::Scalar, ArrayContainerControlTagFooPressure>
+{
+public:
+  typedef dax::Scalar ValueType;
+
+  typedef ArrayPortalFooPressure<FooFieldsDeque> PortalType;
+  typedef ArrayPortalFooPressure<const FooFieldsDeque> PortalConstType;
+
+  DAX_CONT_EXPORT
+  ArrayContainerControl(FooFieldsDeque *container) : Container(container) {  }
+
+  DAX_CONT_EXPORT
+  PortalType GetPortal() { return PortalType(this->Container); }
+
+  DAX_CONT_EXPORT
+  PortalConstType GetPortalConst() const { return PortalConstType(this->Container); }
+
+  DAX_CONT_EXPORT
+  dax::Id GetNumberOfValues() const {
+    return static_cast<dax::Id>(this->Container->size());
+  }
+
+  DAX_CONT_EXPORT
+  void Allocate(dax::Id numberOfValues) { this->Container->resize(numberOfValues); }
+
+  DAX_CONT_EXPORT
+  void Shrink(dax::Id numberOfValues) { this->Container->resize(numberOfValues); }
+
+  DAX_CONT_EXPORT
+  void ReleaseResources() { this->Container->clear(); }
+
+private:
+  FooFieldsDeque *Container;
+};
+
+}
+}
+} // namespace dax::cont::internal
+\end{daxexample}
+
+The final step to make a container adapter is to make a mechanism to
+construct an \textidentifier{ArrayHandle} that points to a particular
+container. This can be done by creating a trivial subclass of
+\daxcont{ArrayHandle} that simply constructs the array handle to the state
+of an existing container. \fix{There remain some things to fix with with
+  feature. First, the constructor might be a bit overcomplicated. Second,
+  there is an issue with the concept template matching mechanism that can
+  cause it to fail with these ArrayHandle subclasses.}
+
+\begin{daxexample}{Array handle to adapt a third-party container to Dax.}
+template<typename DeviceAdapter>
+class ArrayHandleFooPressure
+    : public dax::cont::ArrayHandle<
+                dax::Scalar, ArrayContainerControlTagFooPressure, DeviceAdapter>
+{
+private:
+  typedef dax::cont::internal
+      ::ArrayContainerControl<dax::Scalar,ArrayContainerControlTagFooPressure>
+      ArrayContainerControlType;
+  typedef dax::cont::internal
+      ::ArrayTransfer<T,ArrayContainerControlTagFooPressure,DeviceAdapter>
+      ArrayTransferType;
+public:
+  typedef dax::cont::ArrayHandle<
+      dax::Scalar, ArrayContainerControlTagFooPressure, DeviceAdapter> Superclass;
+
+  ArrayHandleFooPressure(FooFieldsDeque *container)
+    : Superclass(ArrayContainerControlType(container), true, ArrayTransferType(), false)
+  {  }
+};
+\end{daxexample}
+
+With this new version of \textidentifier{ArrayHandle}, the Dax toolkit can
+now read to and write from the \textcode{FooFieldsDeque} structure
+directly. Note, however, that when writing to an array handle, it is
+necessary to call \textcode{GetPortalControl} or
+\textcode{GetPortalConstControl} to flush data from the execution
+environment to the control environment. \fix{Should probably make this
+  easier.}
+
+\begin{daxexample}{Using an \textidentifier{ArrayHandle} with custom container.}
+template<typename GridType>
+DAX_CONT_EXPORT
+void GetElevationAirPressure(const GridType &grid, FooFieldsDeque *fields)
+{
+  dax::worklet::Elevation elevation(dax::make_Vector3(0.0, 0.0, 0.0),
+                                    dax::make_Vector3(0.0, 0.0, 10.0),
+                                    dax::make_Vector2(0.02, 0.0));
+
+  // Make an array handle that points to the pressure values in fields.
+  ArrayHandleFooPressure pressureHandle(fields);
+
+  // Run the elevation worklet.
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(elevation, grid.GetPointCoordinates(), pressureHandle);
+
+  // Make sure values are flushed back to the control environment.
+  pressureHandle.GetPortalConstControl();
+
+  // Now the pressure fields are field in the fields container.
+};
+\end{daxexample}
 
 \index{container!adapting|)}
 \index{array~handle!adapting|)}

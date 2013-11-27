@@ -331,6 +331,38 @@ dax::Tuple<dax::Vector2,3> equilateralTriange(dax::make_Vector2(0.0, 0.0),
                                               dax::make_Vector2(0.5, 0.866));
 \end{daxexample}
 
+\subsubsection{Extents}
+
+\dax{Extent3} is a simple structure that holds the extent information for
+structured data (data defined on a regular grid). It contains to \dax{Id3}
+fields named \textcode{Min} and \textcode{Max} that define the minimum and
+maximum. \dax{Extent3} and several associated helper functions are defined
+in the \daxheader{dax}{Extent.h} header.
+
+\begin{daxexample}{Creating and using an \textidentifier{Extent3}.}
+#include <dax/Extent.h>
+#include <dax/Types.h>
+
+void ExtentExample()
+{
+  // Make an extent that defines a grid that has 5x5x3 points and "centered"
+  // at index (0,0,0).
+  dax::Extent3 extent(dax::make_Id3(-2,-2,-1), dax::make_Id3(2,2,1));
+
+  dax::Id3 minIndices = extent.Min; // Is (-2,-2,-1)
+  dax::Id3 maxIndices = extent.Max; // Is (2,2,1)
+
+  dax::Id3 pointDimensions = extentDimensions(extent); // Returns (5,5,3)
+  dax::Id3 cellDimensions = extentCellDimensions(extent); // Returns (4,4,2)
+
+  dax::Id3 pointIndexA = flatIndexToIndex3(31, extent); // Returns (-1,-1,0)
+  dax::Id3 cellIndexA = flatIndexToIndex3Cell(31, extent); // Returns (1,1,0)
+
+  dax::Id pointIndexB = index3ToFlatIndex(dax::make_Id3(2,-1,0), extent); // Returns 34
+  dax::Id pointIndexB = index3ToFlatIndexCell(dax::make_Id(2,-1,0), extent); // Returns 24
+}
+\end{daxexample}
+
 \subsubsection{Pair}
 
 The Dax toolkit defines a \dax{Pair}\tparams{T1,T2} templated object that
@@ -1310,11 +1342,171 @@ dax::cont::ArrayHandle<dax::Scalar> SafeDataLoad()
 }
 \end{daxexample}
 
-\fix{Example broken code. vector out of scope}
+\subsubsection{Retrieving Data from an Array Handle}
+
+An array handle does not provide direct access to its underlying data by
+design. The most straightforward way to get data from an array handle is to
+use the \textcode{CopyInto} method. \textcode{CopyInto} takes an
+STL-compatible forward iterator and copies all the data into that
+iterator. It is assumed that the iterator can be advanced enough to copy
+all data into the target array. The number of entries in the array handle
+can be retrieved with the \textcode{GetNumberOfValues} method, and the
+target array should be at least that big.
+
+\begin{daxexample}[ex:ArrayHandle::CopyInto]{Retrieving \textidentifier{ArrayHandle} data with \textcode{CopyInto}.}
+dax::cont::ArrayHandle<dax::Scalar> outArray;
+// Do something that fills outArray
+
+std::vector<dax::Scalar> resultBuffer(outArray.GetNumberOfValues());
+outArray.CopyInto(resultBuffer.begin());
+\end{daxexample}
+
+There are two other ways data can be retrieved from an array handle. The
+first is to request an array portal to the data and the second is to define
+a new container that points to a particular data structure. Both of these
+methods are discussed in more detail in later sections.
+
+\subsubsection{Array Portals}
+\label{sec:ArrayPortals}
+
+\index{array~portal|(}
+
+An array handle defines auxiliary structures called \keyterm{array portals}
+that provide direct access into its data. An array portal is a simple
+object that is somewhat functonally equivalent to an STL-type iterator, but
+with a much simpler interface. Array portals can be read-only (const) or
+read-write and they can be accessible from either the control environment
+or the execution environment. All these varients have similar interfaces
+although some features that are not applicable can be left out.
+
+An array portal object contains each of the following:
+\begin{description}
+\item[\textcode{ValueType}] A \textcode{typedef} of the type for each item
+  in the array.
+\item[\textcode{GetNumberOfValues}] A method that returns the number of
+  entries in the array.
+\item[\textcode{Get}] A method that returns the value at a given index.
+\item[\textcode{Set}] A method that changes the value at a given
+  index. This method does not need to exist for read-only (const) array
+  portals.
+\item[\textcode{IteratorType}] A \textcode{typedef} of an STL-compatible
+  random-access iterator that can be used for alternative access. This
+  method does not need to exist in the execution environment.
+\item[\textcode{GetIteratorBegin}] A method that returns an STL-compatible
+  iterator of type \textcode{IteratorType} that points to the beginning of
+  the array. This method does not need exist in the execution environment.
+\item[\textcode{GetIteratorEnd}] A method that returns an STL-compatible
+  iterator of type \textcode{IteratorType} that points to the beginning of
+  the array. This method does not need to exist in the execution
+  environment.
+\end{description}
+
+The following code example defines an array portal for a simple C array of
+scalar values. This definition has no practical value (it is covered by
+more general array portals in the Dax toolkit), but demonstrates the
+function of each component.
+
+\begin{daxexample}{A simple array portal implementation.}
+#include <dax/Types.h>
+
+class SimpleScalarArrayPortal
+{
+public:
+  typedef dax::Scalar ValueType;
+
+  // There is no specification for creating array portals, but they generally
+  // need a constructor like this to be practical.
+  DAX_EXEC_CONT_EXPORT
+  SimpleScalarArrayPortal(ValueType *array, dax::Id numberOfValues)
+    : Array(array), NumberOfValues(numberOfValues) {  }
+
+  DAX_EXEC_CONT_EXPORT
+  SimpleScalarArrayPortal() : Array(NULL), NumberOfValues(0) {  }
+
+  DAX_EXEC_CONT_EXPORT
+  dax::Id GetNumberOfValues GetNumberOfValues() const { return this->GetNumberOfValues; }
+
+  DAX_EXEC_CONT_EXPORT
+  ValueType Get(dax::Id index) const { return this->Array[index]; }
+
+  DAX_EXEC_CONT_EXPORT
+  void Set(dax::Id index, ValueType value) const { this->Array[index] = value; }
+
+  typename ValueType *IteratorType;
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorBegin() const { return this->Array; }
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorEnd() const { return this->Array + this->GetNumberOfValues(); }
+
+private:
+  ValueType *Array;
+  dax::Id NumberOfValues;
+};
+\end{daxexample}
+
+\daxcont{ArrayHandle} contains four \textcode{typedef}s for array portal
+types that are capable of interfacing with the underlying data: two for use
+in the control environment and two for use in the execution
+environment. The two used in the control environment are
+\textcode{PortalControl} and \textcode{PortalConstControl}, which define
+read-write and read-only (const) array portals, respectively. Likewise, the
+two used in the execution environment are \textcode{PortalExecution} and
+\textcode{PortalConstExecution}.
+
+Because \daxcont{ArrayHandle} is an control environment object, it provides
+the methods \textcode{GetPortalControl} and
+\textcode{GetPortalConstControl} to get the associated array portal
+objects. These methods also have the side effect of refreshing the control
+environment copy of the data, so this can be a way of synchronizing the
+data. Be aware that when an \daxcont{ArrayHandle} is created with a pointer
+or \textcode{std::vector}, it is put in a read-only mode, and
+\textcode{GetPortalControl} can fail (although
+\textcode{GetPortalConstControl} will still work). Also be aware that
+calling \textcode{GetPortalControl} will invalidate any copy in the
+execution environment, meaning that any subsequent use will cause the data
+to be copied back again.
+
+In reality, \textcode{GetPortalControl} and
+\textcode{GetPortalConstControl} are only realy used for testing purposes
+or quick access to a particular value. Modifications to an array are better
+performed in the execution environment. Data is best retrieved by providing
+a container (described later) that deposits the data directly into your own
+structures or using the \textcode{CopyInto} method (described
+earlier). Thus, the following example is a bit artificial.
+
+\begin{daxexample}{Using portals from an \textidentifier{ArrayHandle}.}
+#include <dax/cont/ArrayHandle.h>
+
+#include <algorithm>
+
+template<typename T>
+void SortCheckArrayHandle(dax::cont::ArrayHandle<T> arrayHandle)
+{
+  typedef typename dax::cont::ArrayHandle<T>::PortalControl PortalType;
+  typedef typename dax::cont::ArrayHandle<T>::PortalConstControl PortalConstType;
+
+  PortalType readwritePortal = arrayHandle.GetPortalControl();
+  // This is actually pretty dumb. Sorting would be generally faster in parallel in
+  // the execution environment using the device adapter algorithms.
+  dax::sort(readwritePortal.GetIteratorBegin(), readwritePortal.GetIteratorEnd());
+
+  PortalConstType readPortal = arrayHandle.GetPortalConstControl();
+  for (dax::Id index = 1; index < readPortal.GetNumberOfValues(); index++)
+    {
+    if (readPortal.Get(index-1) > readPortal.Get(index))
+      {
+      std::cout << "Sorting is wrong!" << std::endl;
+      break;
+      }
+    }
+}
+\end{daxexample}
+
+\index{array~portal|)}
 
 \noindent
-\fix{--Array Portals} \\
-\fix{--Geting data from} \\
 \fix{--Containers} \\
 \fix{---Basic} \\
 \fix{---Adapting data structures} \\

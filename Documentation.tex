@@ -1506,14 +1506,103 @@ void SortCheckArrayHandle(dax::cont::ArrayHandle<T> arrayHandle)
 
 \index{array~portal|)}
 
-\noindent
-\fix{--Containers} \\
-\fix{---Basic} \\
-\fix{---Adapting data structures} \\
-\fix{---Implicit/derived} \\
-\fix{---Transfer} \\
-\fix{--Interface to device} \\
-\fix{---Prepare\textasteriskcentered} \\
+\subsubsection{Basic Container}
+
+\index{array~handle!container|(}
+\index{container|(}
+
+As previously discussed, \daxcont{ArrayHandle} takes three template
+arguments.
+\begin{daxexample}{Declaration of the \protect\daxcont{ArrayHandle} templated class (again).}
+template<
+    typename T,
+    class ArrayContainerControl = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    class DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+class ArrayHandle;
+\end{daxexample}
+The first argument is the only one required and has been demonstrated
+multiple times before. The thrid (optional) argument specifies the device
+adapter, as described in detail in Section~\ref{sec:DeviceAdapterTag}. The
+second (optional) argument specifies something called a container, which
+provides the interface between the generic \daxcont{ArrayHandle} class and
+a specific storage mechanism in the control environment.
+
+In this and the following sections we describe these control environment
+containers. A default container is specified in much the same way as a
+default device adapter is defined. It is done by setting the
+\daxmacro{DAX\_ARRAY\_CONTAINER\_CONTROL} macro. This macro must be set
+before including any Dax header files. Currently the only practical
+container provided by the Dax toolkit is the basic container, which simply
+allocates a continuous section of memory of the given base type. This
+container can be explicitly specified by setting
+\daxmacro{DAX\_ARRAY\_CONTAINER\_CONTROL} to
+\daxmacro{DAX\_ARRAY\_CONTAINER\_CONTROL\_BASIC} although the basic
+container will also be used as the default if no other container is
+specified (which is typical).
+
+The default array container can always be overridden by specifying an array
+container tag. The tag for the basic container is located in the
+\daxheader{dax/cont}{ArrayContainerControl.h} header file and is named
+\daxcont{ArrayContainerControlTagBasic}. Here is an example of specifying
+the container type when declaring an array handle.
+
+\begin{daxexample}{Specifying the container type for an \textidentifier{ArrayHandle.}}
+dax::cont::ArrayHandle<
+  dax::Scalar,
+  dax::cont::ArrayContainerControlTagBasic> arrayHandle1;
+dax::cont::ArrayHandle<
+  dax::Scalar,
+  dax::cont::ArrayContainerControlTagBasic,
+  dax::cont::DeviceAdapterTagSerial> arrayHandle2;
+\end{daxexample}
+
+The Dax toolkit also defines a macro named
+\daxmacro{DAX\_DEFAULT\_ARRAY\_CONTAINER\_CONTROL\_TAG} that can be used in
+place of an explicit array container tag to use the default tag. This macro
+is used to create new tempaltes that have tempalte parameters for array
+containers that can use the default or to create array handles with the
+default container but a specific device adapter.
+
+\begin{daxexample}{An \textidentifier{ArrayHandle} with default container and explicit device.}
+dax::cont::ArrayHandle<
+  dax::Scalar,
+  DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+  dax::cont::DeviceAdapterTagSerial> arrayHandle;
+\end{daxexample}
+
+
+\subsubsection{Adapting Data Structures}
+
+\index{array~handle!adapting|(}
+\index{container!adapting|(}
+
+\index{container!adapting|)}
+\index{array~handle!adapting|)}
+
+\subsubsection{Implicit Containers}
+
+\index{array~handle!implicit|(}
+\index{container!implicit|(}
+
+\index{container!implicit|)}
+\index{array~handle!implicit|)}
+
+\subsubsection{Derived Containers}
+
+\index{array~handle!derived|(}
+\index{container!derived|(}
+
+\index{container!derived|)}
+\index{array~handle!derived|)}
+
+\fix{Transfer}
+
+\index{container|)}
+\index{array~handle!container|)}
+
+\subsubsection{Interface to Execution Environment}
+
+\fix{Prepare\textasteriskcentered}
 
 \index{array~handle|)}
 

@@ -1842,7 +1842,126 @@ void GetElevationAirPressure(const GridType &grid, FooFieldsDeque *fields)
 
 \index{array~handle!implicit|(}
 \index{container!implicit|(}
+\index{implicit~container|(}
+\index{functional~array|(}
 
+The generic array handle and array container templating in the Dax toolkit
+allows for any type of operations to retreive a particular value. Typically
+this is used to convert an index to some location or locations in
+memory. However, it is also possible to compute a value directly from an
+index rather than look up some value in memory. Such an array is completely
+functionally and requires no storage in memory at all. Such a functional
+array is specified with an \keyterm{implicit container}
+
+Specifying a functional or implicit array in the Dax toolkit is
+straightforward. The Dax toolkit comes with a generic implicit container
+that can be templated to any function you like. In this section we
+demonstrate the steps required to create an implicit container. For the
+purposes of the example, let us say we want an array of even numbers. That
+is, the array has the values $[0,2,4,6,\ldots]$ up to some given
+size. Although we could easily create this array in memory, we can save
+space and possibly time by computing these values on demand.
+
+The first step to creating an implicit container is to build a read-only
+array portal that computes the desired value in the \textcode{Get}
+method. The portal must work in both the control and execution environments
+(although the iterators only need to work in the control environment), and
+no \textcode{Set} method is necessary because the array is assumed to be
+read-only (since it is functional). The array portal may have a small
+amount of state, but the class itself must be copyable as a raw data
+structure. That is, using \textcode{memcpy} on the structure should work.
+
+\begin{daxexample}[ex:ImplicitArrayPortal]{Implicit array portal for an implicit array of even numbers.}
+#include <dax/cont/ArrayContainerControlImplicit.h>
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/internal/IteratorFromArrayPortal.h>
+
+class ArrayPortalEvenNumbers
+{
+public:
+  typedef dax::Id ValueType;
+
+  DAX_EXEC_CONT_EXPORT
+  ArrayPortalEvenNumbers() : NumberOfValues(0) {  }
+
+  DAX_EXEC_CONT_EXPORT
+  ArrayPortalEvenNumbers(dax::Id numValues) : NumberOfValues(numValues) {  }
+
+  DAX_EXEC_CONT_EXPORT
+  dax::Id GetNumberOfValues() const { return this->NumberOfValues; }
+
+  DAX_EXEC_CONT_EXPORT
+  ValueType Get(dax::Id index) const { return 2*index; }
+
+  typedef dax::cont::internal::IteratorFromArrayPortal<ArrayPortalEvenNumbers> IteratorType;
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorBegin() const
+  {
+    return IteratorType(*this);
+  }
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorEnd() const
+  {
+    return IteratorType(*this, this->NumberOfValues);
+  }
+
+private:
+  dax::Id NumberOfValues;
+};
+\end{daxexample}
+
+Note that this array portal uses the template
+\daxcontinternal{IteratorFromArrayPortal}, which can convert any array
+portal to STL-compatible iterators.
+
+Once the implicit array portal is built, an implicit array container is
+defined using the \daxcont{ArrayContainerControlTagImplicit} tag. This tag
+is templated, and the template parameter is the implicit array portal.
+
+\begin{daxexample}[ex:ImplicitArrayContainer]{Defining the container tag for an implicit array of even numbers.}
+typedef dax::cont::ArrayContainerControlTagImplicit<ArrayPortalEvenNumbers>
+    ArrayContainerControlTagEvenNumbers;
+\end{daxexample}
+
+An array handle can be created directly with this tag as the container
+template parameter to \daxcont{ArrayHandle}. However, it is common to
+create a trival subclass of \daxcont{ArrayHandle} that simply constructs
+the array handle to an implicit array portal of a given state. \fix{There
+  remains an issue with the concept template matching mechanism that can
+  cause this subclass to fail with these ArrayHandle subclasses.} The
+following example, which builds on Examples \ref{ex:ImplicitArrayPortal}
+and \ref{ex:ImplicitArrayContainer} demonstrates the convenience
+\daxcont{ArrayHandle} subclass.
+
+\begin{daxexample}{Implicit array handle of even numbers.}
+template<typename DeviceAdapter>
+class ArrayHandleEvenNumbers
+    : public dax::cont::ArrayHandle<
+                dax::Id, ArrayContainerControlTagEvenNumbers, DeviceAdapter>
+{
+  typedef dax::cont::ArrayHandle<
+                dax::Id, ArrayContainerControlTagEvenNumbers, DeviceAdapter> Superclass;
+
+public:
+  ArrayHandleEvenNumbers(dax::Id length)
+    : Superclass(ArrayPortalEvenNumbers(length)) {  }
+};
+\end{daxexample}
+
+The Dax toolkit comes with two examples of implicit containers. The first
+is \daxcont{ArrayHandleConstant}, which returns the same value for every
+index in the array. The constant array is useful when an algorithm that can
+work on a variable field is used on a constant value. The second is
+\daxcont{ArrayHandleCounting}, which returns the index as the value with a
+possible offset. The counting array is useful for generating fields of
+identifiers or for indexing operations. The Dax toolkit also provides
+\daxcont{make\_ArrayHandleConstant} and \daxcont{make\_ArrayHandleCounting}
+convienience functions to simplify building these arrays.
+
+\index{functional~array|)}
+\index{implicit~container|)}
 \index{container!implicit|)}
 \index{array~handle!implicit|)}
 

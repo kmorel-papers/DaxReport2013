@@ -1261,8 +1261,8 @@ default device adapter.
 \begin{daxexample}{Declaration of the \protect\daxcont{ArrayHandle} templated class.}
 template<
     typename T,
-    class ArrayContainerControl = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
-    class DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+    typename ArrayContainerControlTag = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    typename DeviceAdapterTag = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
 class ArrayHandle;
 \end{daxexample}
 
@@ -1506,6 +1506,93 @@ void SortCheckArrayHandle(dax::cont::ArrayHandle<T> arrayHandle)
 
 \index{array~portal|)}
 
+\subsubsection{Interface to Execution Environment}
+
+One of the main functions of the array handle is to allow an array to be
+defined in the control environment and then be used in the execution
+environment. When using an \textidentifier{ArrayHandle} with worklets, this
+transition is handled automatically. However, it is also possible to invoke
+the transfer for use in your own scheduled algorithms.
+
+The \textidentifier{ArrayHandle} class manages the transition from control
+to execution with a set of three methods that allocate, transfer, and ready
+the data in one operation. These methods all start with the prefix
+\textcode{Prepare} and are meant to be called before some operation happens
+in the execution environment. The methods are as follows.
+
+\begin{description}
+\item[\textcode{PrepareForInput}] \index{PrepareForInput} Copies data from
+  the control to the execution environment, if necessary, and readies the
+  data for read-only access.
+\item[\textcode{PrepareForInPlace}] \index{PrepareForInPlace} Copies the
+  data from the control to the execution environment, if necessary, and
+  readies the data for both reading and writing.
+\item[\textcode{PrepareForOutput}] \index{PrepareForOutput} Allocates space
+  (the size of which is given as a parameter) in the execution environment,
+  if necessary, and readies the space for writing.
+\end{description}
+
+Each of these methods returns an array portal that can be used in the
+execution environment. \textcode{PrepareForInput} returns an object of type
+\textcode{PortalConstExecution} (defined in the
+\textidentifier{ArrayHandle}) whereas \textcode{PrepareForInPlace} and
+\textcode{PrepareForOutput} each return an object of type
+\textcode{PortalExecution}.
+
+Although these \textcode{Prepare} methods are called in the control
+environment, the returned array portal can only be used in the execution
+environment. Thus, the portal must be passed to an invocation of the
+execution environment. Typically this is done with a call to
+\textcode{Schedule} in \daxcont{DeviceAdapterAlgorithm}. This and other
+device adapter algorithms are described in detail in
+Section~\ref{sec:DeviceAdapterAlgorithms}, but here is a quick example of
+using these execution array portals in a simple functor.
+
+\begin{daxexample}{Using an execution array portal from an \textidentifier{ArrayHandle}.}
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/DeviceAdapter.h>
+
+#include <dax/exec/internal/WorkletBase>
+
+template<typename InputPortalType, typename OutputPortalType>
+struct DoubleFunctor
+{
+  DAX_CONT_EXPORT
+  DoubleFunctor(InputPortalType inputPortal, OutputPortalType outputPortal)
+    : InputPortal(inputPortal), OutputPortal(outputPortal) {  }
+
+  DAX_EXEC_EXPORT
+  void operator()(dax::Id index) const {
+    this->OutputPortal.Set(index, 2*this->InputPortal.Get(index));
+  }
+
+  InputPortalType InputPortal;
+  OutputPortalType OutputPortal;
+};
+
+template<typename InputArrayType, typename OutputArrayType>
+DAX_CONT_EXPORT
+void DoubleArray(InputArrayType inputArray, OutputArrayType outputArray)
+{
+  dax::Id numValues = inputArray.GetNumberOfValues();
+
+  DoubleFunctor<typename InputArrayType::PortalConstExecution,
+                typename OutputArrayType::PortalExecution>
+    functor(inputArray.PrepareForInput(),
+            outputArray.PrepareForOutput());
+
+  typedef typename InputArrayType::DeviceAdapterTag DeviceAdapter;
+
+  dax::cont::DeviceAdapterAlgorithm<DeviceAdapter>::Schedule(functor, numValues);
+}
+\end{daxexample}
+
+It should be noted that the array handle will expect any use of the
+execution array portal to finish before the next call to any
+\textidentifier{ArrayHandle} method. Since these \textcode{Prepare} methods
+are typically used in the process of scheduling an algorithm in the
+execution environment, this is seldom an issue.
+
 \subsubsection{Basic Container}
 
 \index{array~handle!container|(}
@@ -1516,8 +1603,8 @@ arguments.
 \begin{daxexample}{Declaration of the \protect\daxcont{ArrayHandle} templated class (again).}
 template<
     typename T,
-    class ArrayContainerControl = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
-    class DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+    typename ArrayContainerControlTag = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    typename DeviceAdapterTag = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
 class ArrayHandle;
 \end{daxexample}
 The first argument is the only one required and has been demonstrated
@@ -2481,10 +2568,6 @@ public:
 
 \index{container|)}
 \index{array~handle!container|)}
-
-\subsubsection{Interface to Execution Environment}
-
-\fix{Prepare\textasteriskcentered}
 
 \index{array~handle|)}
 

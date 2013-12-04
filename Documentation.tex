@@ -1970,6 +1970,215 @@ convienience functions to simplify building these arrays.
 \index{array~handle!derived|(}
 \index{container!derived|(}
 
+So far, we have discussed using the array container mechanism to adapt to
+particular memory layout and to create implicit arrays. Yet another option
+is to create a \keyterm{derived container}. A derived container shares
+attributes with both adaptive containers and implicit containers. A derived
+container takes one or more other arrays and changes their behavior in some
+way. Their implementation is similar to adapting a memory layout, but some
+of the details are different.
+
+In this section we will demonstrate the steps required to create a derived
+container. For the purposes of the example, let us say we want to array
+handles to behave as one array with the contents concatinated together. We
+could of course actually copy the data, but we can also do it in place.
+
+As before, the first step to creating a derived container is to build an
+array portal that will take portals from arrays being derived. The portal
+must work in both the control and execution environment (or have a seperate
+version for control and execution).
+
+\begin{daxexample}[ex:DerivedArrayPortal]{Derived array portal for concatenated arrays.}
+#include <dax/cont/ArrayContainerControlImplicit.h>
+#include <dax/cont/ArrayPortal.h>
+#include <dax/cont/Assert.h>
+#include <dax/cont/internal/IteratorFromArrayPortal.h>
+
+template<template P1, template P2>
+class ArrayPortalConcatenate
+{
+public:
+  typedef P1 PortalType1;
+  typedef P2 PortalType2;
+  typedef typename PortalType1::ValueType ValueType;
+
+  DAX_EXEC_CONT_EXPORT
+  ArrayPortalConcatenate() : FirstPortal(), Portal2() {   }
+
+  DAX_EXEC_CONT_EXPORT
+  ArrayPortalConcatenate(const PortalType1 &firstPortal,
+                         const PortalType2 &secondPortal)
+    : Portal1(firstPortal), Portal2(secondPortal) {  }
+
+  /// Copy constructor for any other ArrayPortalConcatenate with an iterator
+  /// type that can be copied to this iterator type. This allows us to do any
+  /// type casting that the iterators do (like the non-const to const cast).
+  template<class OtherP1, class OtherP2>
+  DAX_CONT_EXPORT
+  ArrayPortalConcatenate(const ArrayPortalConcatenate<OtherP1,OtherP2> &src)
+    : Portal1(src.GetPortal1()), Portal2(src.GetPortal2()) {  }
+
+  DAX_EXEC_CONT_EXPORT
+  dax::Id GetNumberOfValues() const {
+    return this->Portal1.GetNumberOfValues() + this->Portal2.GetNumberOfValues();
+  }
+
+  DAX_EXEC_CONT_EXPORT
+  ValueType Get(dax::Id index) const {
+    if (index < this->Portal1.GetNumberOfValues())
+      {
+      return this->Portal1.Get(index);
+      }
+    else
+      {
+      return this->Portal2.Get(index);
+      }
+  }
+
+  DAX_EXEC_CONT_EXPORT
+  ValueType Set(dax::Id index, const ValueType &value) const {
+    if (index < this->Portal1.GetNumberOfValues())
+      {
+      return this->Portal1.Set(index, value);
+      }
+    else
+      {
+      return this->Portal2.Set(index, value);
+      }
+  }
+
+  typedef dax::cont::internal::IteratorFromArrayPortal<
+      ArrayPortalConcatenate<PortalType1,PortalType2> > IteratorType;
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorBegin() const {
+    return IteratorType(*this);
+  }
+
+  DAX_CONT_EXPORT
+  IteratorType GetIteratorEnd() const {
+    return IteratorType(*this, this->GetNumberOfValues());
+  }
+
+  DAX_EXEC_CONT_EXPORT
+  const PortalType1 &GetPortal1() const { return this->Portal1; }
+  DAX_EXEC_CONT_EXPORT
+  const PortalType2 &GetPortal2() const { return this->Portal2; }
+
+private:
+  PortalType1 Portal1;
+  PortalType2 Portal2;
+};
+\end{daxexample}
+
+Like in an adapter container, the next step in creating a derived container
+is to define a tag for the adapter. We shall call ours
+\textcode{ArrayContainerControlTagConcatenate} and it will be templated on
+the two array handle types that we are deriving. Then, we need to create a
+specialization of the templated \daxcontinternal{ArrayContainerControl}
+class. The implementation for an \textidentifier{ArrayContainerControl} for
+a derived container is usually trivial compared to an adapter container
+because the majority of the work is defered to the derived arrays.
+
+\begin{daxexample}[ex:DerivedArrayContainer]{\textidentifier{ArrayContainerControl} for derived container.}
+template<typename FirstArrayHandleType, typename SecondArrayHandleType>
+struct ArrayContainerControlTagConcatenate {  };
+
+namespace dax {
+namespace cont {
+namespace internal {
+
+template<typename T, typename Container1, typename Container2, typename DeviceAdapter>
+class ArrayContainerControl<
+    T,
+    ArrayContainerControlTagConcatenate<
+        dax::cont::ArrayHandle<T, Container1, DeviceAdapter>
+        dax::cont::ArrayHandle<T, Container2, DeviceAdapter> > >
+{
+  typedef dax::cont::ArrayHandle<T, Container1, DeviceAdapter> ArrayHandleType1;
+  typedef dax::cont::ArrayHandle<T, Container2, DeviceAdapter> ArrayHandleType2;
+
+public:
+  typedef T ValueType;
+
+  typedef ArrayPortalConcatinate<
+      typename ArrayHandleType1::PortalConstType,
+      typename ArrayHandleType2::PortalConstType> PortalType;
+
+  DAX_CONT_EXPORT
+  ArrayContainerControl() : Valid(false) {  }
+
+  DAX_CONT_EXPORT
+  ArrayContainerControl(const ArrayHandleType1 firstArrayHandle,
+                        const ArrayHandle2 secondArrayHandle)
+    : Array1(firstArrayHandle), Array2(secondArrayHandle) {  }
+
+  DAX_CONT_EXPORT
+  PortalType GetPortal() {
+    DAX_ASSERT_CONT(this->Valid);
+    return PortalType(this->Array1.GetPortalControl(), this->Array2.GetPortalControl());
+  }
+
+  DAX_CONT_EXPORT
+  PortalConstType GetPortalConst() const {
+    DAX_ASSERT_CONT(this->Valid);
+    return PortalType(this->Array1.GetPortalConstControl(),
+                      this->Array2.GetPortalConstControl());
+  }
+
+  DAX_CONT_EXPORT
+  dax::Id GetNumberOfValues() const {
+    DAX_ASSERT_CONT(this->Valid);
+    return this->Array1.GetNumberOfValues() + this->Array2.GetNumberOfValues();
+  }
+
+  DAX_CONT_EXPORT
+  void Allocate(dax::Id numberOfValues) {
+    DAX_ASSERT_CONT(this->Valid);
+    // This implementation of allocate, which allocates the same amount in both arrays, is
+    // arbitrary. It could, for example, leave the size of Array1 alone and change the size
+    // of Array2. Or, probably most likely, it could simply throw an error and state that
+    // this operation is invalid.
+    dax::Id half = numberOfValues/2;
+    // PrepareForOutput is the only accessible way to resize an ArrayHandle.
+    this->Array1.PrepareForOutput(numberOfValues-half);
+    this->Array2.PrepareForOutput(half);
+  }
+
+  DAX_CONT_EXPORT
+  void Shrink(dax::Id numberOfValues) {
+    DAX_ASSERT_CONT(this->Valid);
+    if (numberOfValues < this->Array1.GetNumberOfValues())
+      {
+      this->Array1.Shrink(numberOfValues);
+      this->Array2.Shrink(0);
+      }
+    else
+      {
+      this->Array2.Shrink(numberOfValues - this->Array1.GetNumberOfValues());
+      }
+  }
+
+  DAX_CONT_EXPORT
+  void ReleaseResources() {
+    DAX_ASSERT_CONT(this->Valid);
+    this->Array1.ReleaseResources();
+    this->Array2.ReleaseResources();
+  }
+
+private:
+  ArrayHandleType1 Array1;
+  ArrayHandleType2 Array2;
+  bool Valid;
+};
+
+}
+}
+} // namespace dax::cont::internal
+\end{daxexample}
+
+\fix{Finish section.}
+
 \index{container!derived|)}
 \index{array~handle!derived|)}
 

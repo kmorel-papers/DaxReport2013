@@ -2379,7 +2379,9 @@ public:
   typedef typename ArrayHandleType1::ValueType ValueType;
 
 private:
-  typedef ArrayContainerControlTagConcatenate<ArrayHandleType1,ArrayHandleType2> ContainerTag;
+  typedef
+  ArrayContainerControlTagConcatenate<ArrayHandleType1,ArrayHandleType2>
+    ContainerTag;
   typedef dax::cont::internal::ArrayContainerControl<ValueType, ContainerTag> ContainerType;
 
 public:
@@ -2574,7 +2576,235 @@ public:
 \subsection{Grid Structures}
 \label{sec:GridStructures}
 
-\fix{Uniform Grid, Unstructured Grid}
+The Dax toolkit provides containers for topologies. The topologies are
+built on the previously described data structures (mostly array handles)
+and are intentionally simplistic to simplify the adaptation to other
+structures.
+
+The grid structures are independent classes. They have no common
+superclass. However, they do have some elements that are expected to be
+common across all grids classes, which can be used in a templated
+environment.
+
+All grid structures have methods named \index{GetNumberOfPoints}
+\textcode{GetNumberOfPoints} and \index{GetNumberOfCells}
+\textcode{GetNumberOfCells}. These methods, of course, return the number of
+points or cells in the grid structure.
+
+\index{GetPointCoordiantes} All grid structures have a method called
+\textcode{GetPointCoordinates}. This method returns an array handle that
+contains the spatial coordinates for all the points in the mesh. Topologies
+with implicit connections might return an array with an implicit or derived
+container (meaning that the data is functionally defined rather than stored
+in memory), but the arrays behave the same regardless. The type of the
+array returned by \textcode{GetPointCoordinates} is specified by the type
+\textcode{PointCoordinatesType} defined in the grid class. This will be
+either a \textcode{typedef} of an \textidentifier{ArrayHandle} with
+specific template parameters or a subclass of
+\textidentifier{ArrayHandle}.
+
+\index{ComputePointCoordinates} It is also possible to query the point
+coordinates for any given point with the \textcode{ComputePointCoordinates}
+method. This method is mainly provided for testing purposes. Most point
+coordinate operations should be performed in the execution environment.
+
+The \textcode{GetPointCoordinates} method is most useful for invoking an
+operation on the point coordinates as a field on points. We have seen this
+method used on the examples of the elevation worklet.
+
+\begin{daxexample}{Processing point coordinates from an unknown grid type.}
+template<typename GridType>
+DAX_CONT_EXPORT
+void Elevation(const GridType &grid,
+               dax::cont::ArrayHandle<dax::Scalar> &outPointElevation)
+{
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(dax::worklet::Elevation(),
+                   grid.GetPointCoordinates(),
+                   outPointElevation);
+}
+\end{daxexample}
+
+Each grid structure contains a particular type of cell. Each grid structure
+defines a type named \index{CellTag} \textcode{CellTag} that identifies the
+type of cell stored. Cell types and operations that can be performed in the
+execution environment are described in
+Section~\ref{sec:CellsAndOperations}.
+
+All grid structures also have the facilities to pack information to be sent
+to the execution environment. There is a type defined in the grid class
+called \textcode{TopologyStructConstExecution} for read-only input data and
+a \textcode{PrepareForInput} method to build the structure. Likewise, there
+is a \textcode{TopologyStructExecution} type and
+\textcode{PrepareForOutput} method for output data.
+
+The execution structures, however, differ significantly. Typically, these
+facilities are handled internally within Dax to pass data to worklets.
+
+\subsubsection{Uniform Grid}
+
+\index{uniform~grid|(}
+
+A uniform grid is stored in a \daxcont{UniformGrid} class. A uniform grid
+is a topolgy structure where its points form a regular 3D array. The 3D
+array of points are axis aligned, and the spacing is uniform along each
+dimension. Adjacent are connected together in \index{voxel} \keyterm{voxel}
+cells, which are simply axis aligned hexahedra.
+
+The topology of a uniform grid is completely implicit and specified with
+three peices of information. First, the extent, stored in a \dax{Extent3}
+structure, specifies the minimum and maximum indices of the array. Second,
+the origin, stored in a \dax{Vector3}, gives the point coordinates of the
+point at index $[0,0,0]$ (which may not actually be in the extent of the
+grid). Third, the spacing, stored in a \dax{Vector3}, gives the amount of
+space between adjacent points in each dimension.
+
+The uniform grid class is templated on the device adaptor for which it is
+being used. Its prototype looks as follows.
+
+\begin{daxexample}{Prototype for \protect\daxcont{UniformGrid}.}
+template <class DeviceAdapterTag = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+class UniformGrid;
+\end{daxexample}
+
+The \daxcont{UniformGrid} class provides the following features.
+\begin{description}
+\item[\textcode{CellTag}] A type that identifies what kind of cell is
+  stored in this class. Always set to \dax{CellTagVoxel}.
+\item[\textcode{GetExtent}] A method that returns a \dax{Extent3}
+  specifying the extent of the 3 dimensional indices.
+\item[\textcode{SetExtent}] A method that sets the extent of the 3
+  dimensional indices. There are two versions of \textcode{SetExtent}: one
+  that accepts a \dax{Extent3} object and another that accepts two
+  \dax{Id3} objects specifying the minimum and maximum indices.
+\item[\textcode{GetOrigin}] A method that returns a \dax{Vector3}
+  specifying the coordinates for the origin of the grid.
+\item[\textcode{SetOrigin}] A method that accepts a \dax{Vector3} as a
+  parameter to set the coordinates for the origin of the grid.
+\item[\textcode{GetSpacing}] A method that returns a \dax{Vector3}
+  specifying the spacing between adjacent points along each dimension.
+\item[\textcode{SetSpacing}] A method that accepts a \dax{Vector3} as a
+  parameter to set the spacing between adjacent points along each
+  dimension.
+\item[\textcode{GetNumberOfPoints}] A method that returns the number of
+  points in the grid.
+\item[\textcode{GetNumberOfCells}] A method that returns the number of
+  cells in the grid.
+\item[\textcode{ComputePointIndex}] A convenience method that takes a
+  \dax{Id3} representing the 3 dimensional coordinates of a point and
+  returns the one dimensional index for the point. The 1 dimensional index
+  corresponds to the index for point field arrays contained in
+  \daxcont{ArrayHandle} objects.
+\item[\textcode{ComputeCellIndex}] A convenience method that takes a
+  \dax{Id3} representing the 3 dimensional coordinates of a cell and
+  returns the one dimensional index for the cell. The 1 dimensional index
+  corresponds to the index for cell field arrays contained in
+  \daxcont{ArrayHandle} objects.
+\item[\textcode{ComputePointLocation}] A convenience method that takes a 1
+  dimensional point index and returns the corresponding 3 dimensional index
+  as a \dax{Id3}. This method performs the inverse operation of
+  \textcode{ComputePointIndex}.
+\item[\textcode{ComputeCellLocation}] A convenience method that takes a 1
+  dimensional cell index and returns the corresponding 3 dimensional index
+  as a \dax{Id3}. This method performs the inverse operation of
+  \textcode{ComputeCellIndex}.
+\item[\textcode{ComputePointCoordinates}] A convienience method that
+  returns the spatial coordinates for a given point. This method is
+  overloaded to accept either a 1 dimensional index as a \dax{Id} or a 3
+  dimensional index as a \dax{Id3}.
+\item[\textcode{GetPointCoordinates}] Returns a \daxcont{ArrayHandle}
+  containing spatial coordinates for each point. This array can be used as
+  a field when invoking worklets. The array is implicit.
+\item[\textcode{PointCoordinatesType}] The type returned by
+  \textcode{GetPointCoordinates}. It is a specialization of
+  \textidentifier{ArrayHandle}.
+\item[\textcode{TopologyStructConstExecution}] A memory copiable structure
+  holding the state of the uniform grid that can be used in the execution
+  environment.
+\item[\textcode{PrepareForInput}] A method that returns a
+  \textcode{TopologyStructConstExecution} object to pass to the execution
+  environment. This method is typically only used internally within the Dax
+  toolkit.
+\end{description}
+
+\index{uniform~grid|)}
+
+\subsubsection{Unstructured Grid}
+
+\index{unstructured~grid|(}
+
+An unstructured grid is stored in a \daxcont{UnstructuredGrid} class. An
+unstructured grid is a topology with a collection of cells connected in
+arbitrary ways. It first defines a list of points. It then has a connection
+list that specifies for each cell the points that comprise the vertices for
+each cell. The \daxcont{UnstructuredGrid} class is limited to containing
+cells of only one type.
+
+The topology of an unstructured grid is defined with a point coordinates
+array and a cell connections array. The point coordinates array is an array
+of \dax{Vertex3} values containing one for each point. The cell connections
+array is an array of \dax{Id} values. The length of this array is the
+number of cells times the number of vertices per cell. The connections for
+a particular cell are grouped together in adjacent array values. The cell
+connetions are given in CGNS order\lcite{CGNS}.
+
+\fix{A figure showing an example connection array would be good here.}
+
+The unstructured grid class is templated on the cell type
+(\dax{CellTagHexahedron}, \dax{CellTagLine}, \dax{CellTagQuadrilateral},
+\dax{CellTagTetrahedron}, \dax{CellTagTriangle}, \dax{CellTagVertex}, or
+\dax{CellTagWedge}) the container for cell connections, the container for
+the point coordinate array, and the device adapter. Its prototype looks as
+follows.
+
+\begin{daxexample}{Prototype for \protect\daxcont{UnstructuredGrid}.}
+template <
+    typename CellT,
+    class CellConnectionsContainerControlTag = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    class PointsArrayContainerControlTag = DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+    class DeviceAdapterTag = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
+class UnstructuredGrid;
+\end{daxexample}
+
+The \daxcont{UnstructuredGrid} class provides the following features.
+\begin{description}
+\item[\textcode{CellTag}] A type that identifies what kind of cell is
+  stored in this class. Always set to the first template parameter.
+\item[\textcode{CellConnectionsType}] The type of the \daxcont{ArrayHandle}
+  used to store cell connection indices.
+\item[\textcode{PointCoordinatesType}] The type of the
+  \daxcont{ArrayHandle} used to store point coordinates.
+\item[\textcode{GetCellConnections}] A method used to get the array handle
+  for the cell connections.
+\item[\textcode{SetCellConnetions}] A method used to set the array handle
+  for the cell connections.
+\item[\textcode{GetPointCoordinates}] A method used to get the array handle
+  for point coordinates.
+\item[\textcode{SetPointCoordinates}] A method used to set the array handle
+  for point coordinates.
+\item[\textcode{ComputePointCoordinates}] A convenience method that takes a
+  point index and returns the point coordinates at that index. The actual
+  value is pulled from the point coordinates array.
+\item[\textcode{GetNumberOfPoints}] A method that returns the number of
+  points in the grid.
+\item[\textcode{GetNumberOfCells}] A method that returns the number of
+  cells in the grid.
+\item[\textcode{TopologyStructExecution}] A memory copiable structure
+  holding the state of the uniform grid that can be used in the execution
+  environment.
+\item[\textcode{TopologyStructConstExecution}] A read-only (const) form of
+  \textcode{TopologyStructuExecution}.
+\item[\textcode{PrepareForInput}] A method that returns a
+  \textcode{TopologyStructConstExecution} object to pass to the execution
+  environment. This method is typically only used internally within the Dax
+  toolkit.
+\item[\textcode{PrepareForOutput}] A method that returns a
+  \textcode{TopologyStructExecution} object to pass to the execution
+  environment. This method is typically only used internally within the Dax
+  toolkit.
+\end{description}
+
+\index{unstructured~grid|)}
 
 \subsection{Scheduling}
 \label{sec:Scheduling}
@@ -2631,6 +2861,7 @@ public:
 \index{math|)}
 
 \subsection{Cells and Operations}
+\label{sec:CellsAndOperations}
 
 \fix{-tags} \\
 \fix{-dax::exec::CellVertices} \\

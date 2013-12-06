@@ -2814,10 +2814,50 @@ The \daxcont{UnstructuredGrid} class provides the following features.
 \subsection{Timers}
 \label{sec:Timers}
 
-\fix{Write}
+\index{timer|(}
+
+It is often the case that you need to measure the time it takes for an
+operation to happen. This could be for performing measurements for
+algorithm study or it could be to dynamically adjust scheduling.
+
+Performing timing in a multi-threaded environment can be tricky because
+operations happen asynchronously. In the Dax control environment timing is
+simplified because the control environment operates on a single
+thread. However, operations invoked in the execution environment may run
+asynchronously to operations in the control environment.
+
+To ensure that accurate timings can be made, Dax provides a \daxcont{Timer}
+class that is templated on the device adapter to provide an accurate
+measurement of operations that happen on the device. The timing starts with
+the \textidentifier{Timer} is constructed. The time elapsed can be
+retrieved with a call to the \textcode{GetElapsedTime} method. This method
+will block until all operations in the execution environment complete so as
+to return an accurate time. The timer can be restarted with a call to the
+\textcode{Reset} method.
+
+\begin{daxexample}{Using \protect\daxcont{Timer}.}
+dax::cont::UniformGrid<> grid;
+grid.SetExtent(dax::make_Id3(0, 0, 0), dax::make_Id3(99, 99, 99));
+grid.SetOrigin(dax::make_Vector3(0.0, 0.0, 0.0));
+grid.SetSpacing(dax::make_Vector3(1.0, 1.0, 1.0));
+
+dax::cont::ArrayHandle<dax::Scalar> results;
+dax::cont::Scheduler<> scheduler;
+dax::worklet::Elevation worklet;
+
+dax::cont::Timer<> timer;
+scheduler.Invoke(worklet, grid.GetPointCoordinates(), results);
+// This call makes sure data is pulled back to the host in a host/device architecture.
+results.GetPortalConstControl();
+dax::Scalar elapsedTime = timer.GetElapsedTime();
+
+std::cout << "Time to run elevation: " << elapsedTime << std::endl;
+\end{daxexample}
+
+\index{timer|)}
 
 \subsection{Error Handling}
-\label{sec:ErrorHandling}
+\label{sec:ErrorHandlingControl}
 
 \fix{Write}
 
@@ -2848,8 +2888,12 @@ The \daxcont{UnstructuredGrid} class provides the following features.
 \fix{-List of types}\\
 \fix{-Base Classes}\\
 \fix{-operator()} \\
-\fix{-signatures} \\
-\fix{-error handling}
+\fix{-signatures}
+
+\subsection{Error Handling}
+\label{sec:ErrorHandlingExecution}
+
+\fix{Raising errors in the execution environment.}
 
 \subsection{Math}
 \label{sec:Math}

@@ -79,6 +79,9 @@
                    VectorTraits,ComponentType,HasMultipleComponents,
                    VectorTraitsTagMultipleComponents,
                    VectorTraitsTagSingleComponent,
+                   Error, ErrorExecution, ErrorControl,
+                   ErrorControlAssert, ErrorControlBadValue,
+                   ErrorControlInternal, ErrorControlOutOfMemory,
                    DeviceAdapterTagSerial,
                    DeviceAdapterTagCuda,
                    DeviceAdapterTagOpenMP,
@@ -122,7 +125,8 @@
                    DAX_ARRAY_CONTAINER_CONTROL,
                    DAX_ARRAY_CONTAINER_CONTROL_BASIC,
                    DAX_ARRAY_CONTAINER_CONTROL_ERROR,
-                   DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG
+                   DAX_DEFAULT_ARRAY_CONTAINER_CONTROL_TAG,
+                   DAX_ASSERT_CONT
                    },
   morekeywords={[4]dax,exec,cont,worklet,math,cuda,openmp,tbb,internal,detail},
   morekeywords={[5]ControlSignature, ExecutionSignature}

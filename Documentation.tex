@@ -2922,11 +2922,137 @@ errors. The following control errors exist and may be thrown.
 \subsection{Device Adapter Algorithms}
 \label{sec:DeviceAdapterAlgorithms}
 
-\subsubsection{Available Algorithms}
+The Dax toolkit comes with the templated class
+\daxcont{DeviceAdapterAlgorithm} that provides a set of algorithms that can
+be invoked in the control environment and are run on the execution
+environment. The template has a single argument that specifies the device
+adapter tag.
 
-\fix{Write}
+\begin{daxexample}{Prototype for \protect\daxcont{DeviceAdapterAlgorithm}.}
+template<class DeviceAdapterTag>
+struct DeviceAdapterAlgorithm;
+\end{daxexample}
 
-\subsubsection{Implementing Device Adapters}
+\textidentifier{DeviceAdapterAlgorithm} contains no state. It only has a
+set of static methods that implement its algorithms. The following methods
+are available.
+
+\begin{description}
+\item[\textcode{Copy}] \index{copy} Copies data from an input array to an
+  output array. The copy takes place in the execution environment.
+\item[\textcode{LowerBounds}] \index{lower~bounds} The
+  \textcode{LowerBounds} method takes three arguments. The first argument
+  is an \textidentifier{ArrayHandle} of sorted values. The second argument
+  is another \textidentifier{ArrayHandle} of items to find in the first
+  array. \textcode{LowerBounds} find the index of the first item that is
+  greater than or equal to the target value, much like the
+  \textcode{std::lower\_bound} STL algorithm. The results are returned in
+  an \textidentifier{ArrayHandle} given in the third argument.
+
+  There are two specializations of \textcode{LowerBound}. The first takes
+  an additional comparison function that defines the less-than
+  operation. The second takes only two parameters. The first is an
+  \textidentifier{ArrayHandle} of sorted \dax{Id}s and the second is an
+  \textidentifier{ArrayHandle} of \dax{Id}s to find in the first list. The
+  results are written back out to the second array. This second
+  specialization is useful for inverting index maps.
+\item[\textcode{ScanInclusive}] \index{scan!inclusive} The
+  \textcode{ScanInclusive} method takes an input and an output
+  \textidentifier{ArrayHandle} and performs a running sum on the input
+  array. The first value in the output is the same as the first value in
+  the input. The second value in the output is the sum of the first two
+  values in the input. The third value in the output is the sum of the
+  first three values of the input, and so on. \textcode{ScanInclusive}
+  returns the sum of all values in the input.
+\item[\textcode{ScanExclusive}] \index{scan!exclusive} The
+  \textcode{ScanExclusive} method takes an input and an output
+  \textidentifier{ArrayHandle} and performs a running sum on the input
+  array. The first value in the output is always 0. The second value in the
+  output is the same as the first value in the input. The third value in
+  the output is the sum of the first two values in the input. The fourth
+  value in the output is the sum of the first three values of the input,
+  and so on. \textcode{ScanExclusive} returns the sum of all values in the
+  input.
+\item[\textcode{Schedule}] \index{schedule} The \textcode{Schedule} method
+  takes a functor as its first argument and invokes it a number of times
+  specified by the second argument. It should be assumed that each
+  invocation of \textcode{Schedule} occurs on a separate thread although in
+  practice there could be some thread sharing.
+
+  There are two versions of the \textcode{Schedule} method. The first
+  version takes a \dax{Id} and invokes the functor that number of
+  times. The second version takes a \dax{Id3} and invokes the functor once
+  for every entry in a 3D array of the given dimensions.
+
+  The functor is expected to be an object with a const overloaded
+  parentheses operator. The operator takes as a parameter the index of the
+  invocation, which is either a \dax{Id} or a \dax{Id3} depending on what
+  version of \textcode{Schedule} is being used. The functor must also
+  provide a method named \textcode{SetErrorMessageBuffer} that accepts an
+  argument of type \daxexecinternal{ErrorMessageBuffer}. If any errors
+  occur during the invocations of the functor, it should call the
+  \textcode{RaiseError} method of the
+  \textidentifier{ErrorMessageBuffer}. That will cause the
+  \textcode{Schedule} method to (eventually) throw a
+  \daxcont{ErrorExecution} exception.
+\item[\textcode{Sort}] \index{sort} The \textcode{Sort} method provides an
+  unstable sort of an array. There are two forms of the \textcode{Sort}
+  method. The first takes an \textidentifier{ArrayHandle} and sorts the
+  values in place. The second takes an additional argument that is a
+  functor that provides the comparison operation for the sort.
+\item[\textcode{SortByKey}] \index{sort!by key} The \textcode{SortByKey}
+  method works similarly to the \textcode{Sort} method except that it takes
+  two \textidentifier{ArrayHandle}s: an array of keys and a corresponding
+  array of values. The sort orders the array of keys in ascending values
+  and also reorders the values so they remain paired with the same
+  key. Like \textcode{Sort}, \textcode{SortByKey} has a version that sorts
+  by the default less-than operator and a version that accepts a custom
+  comparison functor.
+\item[\textcode{StreamCompact}] \index{stream~compact} The
+  \textcode{StreamCompact} method selectively removes values from an
+  array. The first argument is an \textidentifier{ArrayHandle} to be
+  compacted and the second argument is an \textidentifier{ArrayHandle} of
+  equal size with flags indicating whether the corresponding input value is
+  to be copied to the output. The third argument is an output
+  \textidentifier{ArrayHandle} whose length is set to the number of true
+  flags in the stencil and the passed values are put in order to the output
+  array.
+
+  There is also a second form of \textidentifier{StreamCompact} that only
+  has the stencil and output as arguments. In this version, the output gets
+  the corresponding index of where the input should be taken from.
+\item[\textcode{Synchronize}] \index{synchronize} The
+  \textidentifier{Synchronize} method waits for any asynchronous operations
+  running on the device to complete and then returns.
+\item[\textcode{Unique}] \index{unique} The \textcode{Unique} method
+  removes all duplicate values in an \textidentifier{ArrayHandle}. The
+  method will only find duplicates if they are adjacent to each other in
+  the array. The easiest way to ensure that duplicate values are adjacent
+  is to sort the array first.
+
+  There are two versions of \textcode{Unique}. The first uses the equals
+  operator to compare entries. The second accepts a binary functor to
+  perform the comparisons.
+\item[\textcode{UpperBounds}] \index{upper~bounds} The
+  \textcode{UpperBounds} method takes three arguments. The first argument
+  is an \textidentifier{ArrayHandle} of sorted values. The second argument
+  is another \textidentifier{ArrayHandle} of items to find in the first
+  array. \textcode{UpperBounds} find the index of the first item that is
+  greater than to the target value, much like the
+  \textcode{std::upper\_bound} STL algorithm. The results are returned in
+  an \textidentifier{ArrayHandle} given in the third argument.
+
+  There are two specializations of \textcode{UpperBound}. The first takes
+  an additional comparison function that defines the less-than
+  operation. The second takes only two parameters. The first is an
+  \textidentifier{ArrayHandle} of sorted \dax{Id}s and the second is an
+  \textidentifier{ArrayHandle} of \dax{Id}s to find in the first list. The
+  results are written back out to the second array. This second
+  specialization is useful for inverting index maps.
+\end{description}
+
+\subsection{Implementing Device Adapters}
+\label{sec:ImplementingDeviceAdapters}
 
 \fix{Also talk about generic device adapter.}
 

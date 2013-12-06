@@ -205,6 +205,10 @@
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{exec}\indexnamespacetwo{dax}{exec}}%
              {\writeindexidentifiertwo{dax}{exec}{#1}}}
+\newcommand*{\daxexecinternal}[1]{%
+  \ifthenelse{\equal{#1}{}}%
+             {\writenamespacethree{dax}{exec}{internal}\indexnamespacethree{dax}{cont}{internal}}%
+             {\writeindexidentifierthree{dax}{exec}{internal}{#1}}}
 \newcommand*{\daxworklet}[1]{%
   \ifthenelse{\equal{#1}{}}%
              {\writenamespacetwo{dax}{worklet}\indexnamespacetwo{dax}{worklet}}%

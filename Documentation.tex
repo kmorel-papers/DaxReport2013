@@ -2324,19 +2324,21 @@ The \daxcontinternal{ArrayTransfer} must define the following items.
 \item[\textcode{LoadDataForInput}] A method that takes an array portal of
   type \textcode{PortalConstControl}, allocates enough space in the
   execution environment, and copies the given data to that array. The
-  allocated array can later be accessed via the \textcode{GetPortalConst}
-  method. The data is assumed to be read-only.
+  allocated array can later be accessed via the
+  \textcode{GetPortalConstExecution} method. The data is assumed to be
+  read-only.
 \item[\textcode{LoadDataForInPlace}] A method that takes an array portal of
   type \textcode{PortalControl}, allocates enough space in the execution
   environment, and copies the given data to that array. The allocated array
-  can later be accessed via the \textcode{GetPortal} and
-  \textcode{GetPortalConst} methods. The data can be read and written.
+  can later be accessed via the \textcode{GetPortalExecution} and
+  \textcode{GetPortalConstExecution} methods. The data can be read and
+  written.
 \item[\textcode{AllocateArrayForOutput}] A method that takes an array
   container and a size and allocates an array in the execution environment
   of the specified size. The initial memory is uninitialized and can be
-  accessed via the \textcode{GetPortal} method. The container argument can
-  be used to allocate data when the control and execution share arrays, but
-  this argument is often ignored.
+  accessed via the \textcode{GetPortalExecution} method. The container
+  argument can be used to allocate data when the control and execution
+  share arrays, but this argument is often ignored.
 \item[\textcode{RetrieveOutputData}] This method takes an array container,
   allocates memory in the control environment, and copies data from the
   execution environment into it.
@@ -2919,8 +2921,13 @@ errors. The following control errors exist and may be thrown.
 
 \index{errors|)}
 
+\index{device~adapter|(}
+
 \subsection{Device Adapter Algorithms}
 \label{sec:DeviceAdapterAlgorithms}
+
+\index{device~adapter!algorithm|(}
+\index{algorithm|(}
 
 The Dax toolkit comes with the templated class
 \daxcont{DeviceAdapterAlgorithm} that provides a set of algorithms that can
@@ -2929,8 +2936,14 @@ environment. The template has a single argument that specifies the device
 adapter tag.
 
 \begin{daxexample}{Prototype for \protect\daxcont{DeviceAdapterAlgorithm}.}
+namespace dax {
+namespace cont {
+
 template<class DeviceAdapterTag>
 struct DeviceAdapterAlgorithm;
+
+}
+} // namespace dax::cont
 \end{daxexample}
 
 \textidentifier{DeviceAdapterAlgorithm} contains no state. It only has a
@@ -3051,12 +3064,495 @@ are available.
   specialization is useful for inverting index maps.
 \end{description}
 
+\index{algorithm|)}
+\index{device~adapter!algorithm|)}
+
 \subsection{Implementing Device Adapters}
 \label{sec:ImplementingDeviceAdapters}
 
-\fix{Also talk about generic device adapter.}
+The Dax toolkit comes with several implementations of device adapters so
+that it may be ported to a variety of platforms. It is also possible to
+provide new device adapters to support yet more devices, compilers, and
+libraries. A new device adapter provides a tag, a class to manage arrays in
+the execution environment, a collection of algorithms that run in the
+execution environment, and (optionally) a timer.
 
-\fix{What about implementing execution memory management?}
+Although not strictly necessary, the implementation of device adapters
+within the Dax toolkit are divided into 3 header files with the names
+\textfilename{DeviceAdapterTag\textasteriskcentered.h},
+\textfilename{ArrayManagerExecution\textasteriskcentered.h} and
+\textfilename{DeviceAdapterAlgorithm\textasteriskcentered.h}. The
+\textfilename{DeviceAdapter\textasteriskcentered.h} that most code includes
+is a trivial header that simply includes these other three files. For
+example, the \daxheader{dax/tbb/cont}{DeviceAdapterTBB.h} for the Intel
+Threading Building Blocks (TBB) device adapter simply contains the
+following (with minutia like include guards removed).
+
+\begin{daxexample}{Contents of \protect\daxheader{dax/tbb/cont}{DeviceAdapterTBB.h} file.}
+#include <dax/tbb/cont/internal/DeviceAdapterTagTBB.h>
+#include <dax/tbb/cont/internal/ArrayManagerExecutionTBB.h>
+#include <dax/tbb/cont/internal/DeviceAdapterAlgorithmTBB.h>
+\end{daxexample}
+
+The reason the Dax toolkit breaks up the code for its device adapters this
+way is that there is an interdependence between the implementation of each
+device adapter and the mechanism to pick a default device adapter. Breaking
+up the device adapter code in this way maintains an acyclic depedence among
+header files.
+
+\subsubsection{Tag}
+
+The device adapter tag, as described in Section~\ref{sec:DeviceAdapterTag}
+is a simple empty type that is used as a template parameter to identify the
+device adapter. Every device adapter implementation provides one. The
+device adapter tag is typically defined in an internal header file with a
+prefix of \textfilename{DeviceAdapterTag}. Here is the implementation for
+the TBB device adapter.
+
+\begin{daxexample}{Implementation of the TBB device adapter tag.}
+namespace dax {
+namespace tbb {
+namespace cont {
+
+struct DeviceAdapterTagTBB {  };
+
+}
+}
+} // namespace dax::tbb::cont
+\end{daxexample}
+
+\subsubsection{Array Manager Execution}
+
+\index{device~adapter!array manager|(}
+\index{array~manager~execution|(}
+\index{execution~array~manager|(}
+
+The Dax toolkit defines a template named
+\daxcontinternal{ArrayManagerExecution} that is responsible for allocating
+memory in the execution environment and copying data between the control
+and execution environment. The execution array manager is typically defined
+in an internal header file with a prefix of
+\textfilename{ArrayManagerExecution}.
+
+\begin{daxexample}{Prototype for \protect\daxcontinternal{ArrayManagerExecution}.}
+namespace dax {
+namespace cont {
+namespace internal {
+
+template<typename T, class ArrayContainerControlTag, class DeviceAdapterTag>
+class ArrayManagerExecution;
+
+}
+}
+} // namespace dax::cont::internal
+\end{daxexample}
+
+A device adapter must provide a partial specialization of
+\textidentifier{ArrayManagerExecution} for its device adapter tag. The
+implementation for \textidentifier{ArrayManagerExecution} is expected to
+manage the resources for a single array, and it must provide the following
+elements.
+
+\begin{description}
+\item[\textcode{ValueType}] A \textcode{typedef} of the type for each item
+  in the array. This is the same type as the first template argument.
+\item[\textcode{PortalType}] The type of an array portal that can be used
+  in the execution environment to access the array.
+\item[\textcode{PortalConstType}] A read-only (const) version of
+  \textcode{PortalType}.
+\item[\textcode{GetNumberOfValues}] A method that returns the number of
+  values stored in the array. The results are undefined if the data has not
+  been loaded or allocated.
+\item[\textcode{LoadDataForInput}] A method that takes an array portal in
+  the control environment, allocates a large enough array in the execution
+  environment, and copies the data into that array. The data in the
+  execution array is not expected to be changed. The allocated array can
+  later be accessed via the \textcode{GetPortalConst} method.
+\item[\textcode{LoadDataForInPlace}] A method that takes an array portal in
+  the control environment, allocates a large enough array in the execution
+  environment, and copies the data into that array. The data in the
+  execution array is expected to be read and changed. The allocated array
+  can later be accessed via the \textcode{GetPortal} and
+  \textcode{GetPortalConst} methods.
+\item[\textcode{AllocateArrayForOutput}] A method that takes an array
+  container and a size and allocates an array in the execution environment
+  of the specified size. The initial memory is uninitialized and can be
+  accessed via the \textcode{GetPortal} method. The container argument can
+  be used to allocate data when the control and execution share arrays, but
+  this argument is often ignored.
+\item[\textcode{RetrieveOutputData}] This method takes an array container,
+  allocates memory in the control environment, and copies data from the
+  execution environment into it.
+\item[\textcode{CopyInto}] This method takes an STL-compatible iterator and
+  copies data from the execution environment into it.
+\item[\textcode{Shrink}] A method that adjusts the size of the array in the
+  execution environment to something that is a smaller size. All the data
+  up to the new length must remain vaild. Typically, no memory is actually
+  reallocated. Instead, a different end is marked.
+\item[\textcode{GetPortal}] A method that returns an array portal
+  that can be used in the execution environment. The portal was defined in
+  either \textcode{LoadDataForInPlace} or
+  \textcode{AllocateArrayForOutput}.
+\item[\textcode{GetPortalConst}] A method that returns a read-only
+  (const) array portal that can be used in the execution environment. The
+  portal was defined in one of the load or allocate methods.
+\item[\textcode{ReleaseResources}] A method that frees any resources
+  (typically memory) in the execution environment.
+\end{description}
+
+Specializations of this template typically take on one of two forms. If the
+control and execution environments have separate memory spaces, then this
+class behaves by copying memory in methods such as
+\textcode{PrepareForInput} and \textcode{RetrieveOutputData}. This might
+require creating buffers in the control environment to efficiently move
+data from control array portals.
+
+However, if the control and execution environments share the same memory
+space, the execution array manager can, and should, delegate all of its
+operations to the \textidentifier{ArrayContainerControl} it is used
+with. The Dax toolkit comes with a class called
+\daxcontinternal{ArrayManagerExecutionShareWithControl} that provides the
+implementation for an execution array manager that shares a memory space
+with the control environment. In this case, making the
+\textidentifier{ArrayManagerExecution} specialization be a trival subclass
+is sufficient. For example, here is the implementation of
+\textidentifier{ArrayManagerExecution} for TBB.
+
+\begin{daxexample}{Specialization of \textidentifier{ArrayManagerExecution} for TBB.}
+#include <dax/tbb/cont/internal/DeviceAdapterTagTBB.h>
+
+#include <dax/cont/internal/ArrayManagerExecution.h>
+#include <dax/cont/internal/ArrayManagerExecutionShareWithControl.h>
+
+namespace dax {
+namespace cont {
+namespace internal {
+
+template <typename T, class ArrayContainerTag>
+class ArrayManagerExecution
+    <T, ArrayContainerTag, dax::tbb::cont::DeviceAdapterTagTBB>
+    : public dax::cont::internal::ArrayManagerExecutionShareWithControl
+        <T, ArrayContainerTag>
+{
+};
+
+}
+}
+} // namespace dax::cont::internal
+\end{daxexample}
+
+\index{execution~array~manager|)}
+\index{array~manager~execution|)}
+\index{device~adapter!array manager|)}
+
+\subsubsection{Algorithms}
+
+\index{device~adapter!algorithm|(}
+\index{algorithm|(}
+
+A device adapter implementation must also provide a specialization of
+\daxcont{DeviceAdapterAlgorithm}, which is documented in
+Section~\ref{sec:DeviceAdapterAlgorithms}. The implementation for the
+device adapter algorithms is typically placed in a header file with a
+prefix of \textfilename{DeviceAdapterAlgorithm}.
+
+Although there are many methods in
+\textidentifier{DeviceAdapterAlgorithms}, it is seldom necessary to
+implement them all. Instead, the Dax toolkit comes with
+\daxcontinternal{DeviceAdapterAlgorithmGeneral} that provides generic
+implementation for most of the required algorithms. By deriving the
+specialization of \textidentifier{DeviceAdapterAlgorithm} from
+\textidentifier{DeviceAdapterAlgorithmGeneral}, only the implementations
+for \textcode{Schedule} and \textcode{Synchronize} need to be
+implemented. All other algorithms can be derived from those.
+
+That said, not all of the algorithms implemented in
+\textidentifier{DeviceAdapterAlgorithmGeneral} are optimized for all types
+of devices. Thus, it is worthwhile to provide algorithms optimized for the
+specific device when possible. In particular, it is best to provide
+specializations for the sort and scan algorithms.
+
+The following example is a minimal implementation of the TBB device adapter
+algorithms. The actual version that comes with the Dax toolkit contains
+more enhancements.
+
+\begin{daxexample}{Abbreviated implementation of \textidentifier{DeviceAdapterAlgorithm} for TBB.}
+#include <dax/tbb/cont/internal/DeviceAdapterTagTBB.h>
+#include <dax/tbb/cont/internal/ArrayManagerExecutionTBB.h>
+
+#include <dax/cont/internal/DeviceAdapterAlgorithmGeneral.h>
+#include <dax/exec/internal/IJKIndex.h>
+
+#include <tbb/blocked_range.h>
+#include <tbb/blocked_range3d.h>
+#include <tbb/parallel_for.h>
+
+namespace dax {
+namespace cont {
+
+template<>
+struct DeviceAdapterAlgorithm<dax::tbb::cont::DeviceAdapterTagTBB> :
+    dax::cont::internal::DeviceAdapterAlgorithmGeneral<
+        DeviceAdapterAlgorithm<dax::tbb::cont::DeviceAdapterTagTBB>,
+        dax::tbb::cont::DeviceAdapterTagTBB>
+{
+private:
+  static const dax::Id TBB_GRAIN_SIZE = 128;
+
+  template<class FunctorType>
+  class ScheduleKernel
+  {
+  public:
+    DAX_CONT_EXPORT ScheduleKernel(const FunctorType &functor)
+      : Functor(functor)
+    {  }
+
+    DAX_CONT_EXPORT void SetErrorMessageBuffer(
+        const dax::exec::internal::ErrorMessageBuffer &errorMessage)
+    {
+      this->ErrorMessage = errorMessage;
+      this->Functor.SetErrorMessageBuffer(errorMessage);
+    }
+
+    DAX_EXEC_EXPORT
+    void operator()(const ::tbb::blocked_range<dax::Id> &range) const {
+      // The TBB device adapter causes array classes to be shared between
+      // control and execution environment. This means that it is possible for
+      // an exception to be thrown even though this is typically not allowed.
+      // Throwing an exception from here is bad because there are several
+      // simultaneous threads running. Get around the problem by catching the
+      // error and setting the message buffer as expected.
+      try
+        {
+        for (dax::Id index = range.begin(); index < range.end(); index++)
+          {
+          this->Functor(index);
+          }
+        }
+      catch (dax::cont::Error error)
+        {
+        this->ErrorMessage.RaiseError(error.GetMessage().c_str());
+        }
+      catch (...)
+        {
+        this->ErrorMessage.RaiseError(
+            "Unexpected error in execution environment.");
+        }
+    }
+  private:
+    FunctorType Functor;
+    dax::exec::internal::ErrorMessageBuffer ErrorMessage;
+  };
+
+public:
+  template<class FunctorType>
+  DAX_CONT_EXPORT
+  static void Schedule(FunctorType functor, dax::Id numInstances)
+  {
+    const dax::Id MESSAGE_SIZE = 1024;
+    char errorString[MESSAGE_SIZE];
+    errorString[0] = '\0';
+    dax::exec::internal::ErrorMessageBuffer
+        errorMessage(errorString, MESSAGE_SIZE);
+
+    ScheduleKernel<FunctorType> kernel(functor);
+    kernel.SetErrorMessageBuffer(errorMessage);
+
+    ::tbb::blocked_range<dax::Id> range(0, numInstances, TBB_GRAIN_SIZE);
+
+    ::tbb::parallel_for(range, kernel);
+
+    if (errorMessage.IsErrorRaised())
+      {
+      throw dax::cont::ErrorExecution(errorString);
+      }
+  }
+
+private:
+  template<class FunctorType>
+  class ScheduleKernelId3
+  {
+  public:
+    DAX_CONT_EXPORT ScheduleKernelId3(const FunctorType &functor,
+                                      const dax::Id3& dims)
+      : Functor(functor),
+        Dims(dims)
+      {  }
+
+    DAX_CONT_EXPORT void SetErrorMessageBuffer(
+        const dax::exec::internal::ErrorMessageBuffer &errorMessage)
+    {
+      this->ErrorMessage = errorMessage;
+      this->Functor.SetErrorMessageBuffer(errorMessage);
+    }
+
+    DAX_EXEC_EXPORT
+    void operator()(const ::tbb::blocked_range3d<dax::Id> &range) const {
+      try
+        {
+        dax::exec::internal::IJKIndex index(this->Dims);
+        for( dax::Id k=range.pages().begin(); k!=range.pages().end(); ++k)
+          {
+          index.SetK(k);
+          for( dax::Id j=range.rows().begin(); j!=range.rows().end(); ++j)
+            {
+            index.SetJ(j);
+            for( dax::Id i=range.cols().begin(); i!=range.cols().end(); ++i)
+              {
+              index.SetI(i);
+              this->Functor(index);
+              }
+            }
+          }
+        }
+      catch (dax::cont::Error error)
+        {
+        this->ErrorMessage.RaiseError(error.GetMessage().c_str());
+        }
+      catch (...)
+        {
+        this->ErrorMessage.RaiseError(
+            "Unexpected error in execution environment.");
+        }
+    }
+  private:
+    FunctorType Functor;
+    dax::Id3 Dims;
+    dax::exec::internal::ErrorMessageBuffer ErrorMessage;
+  };
+
+public:
+  template<class FunctorType>
+  DAX_CONT_EXPORT
+  static void Schedule(FunctorType functor,
+                       dax::Id3 rangeMax)
+  {
+    //we need to extract from the functor that uniform grid information
+    const dax::Id MESSAGE_SIZE = 1024;
+    char errorString[MESSAGE_SIZE];
+    errorString[0] = '\0';
+    dax::exec::internal::ErrorMessageBuffer
+        errorMessage(errorString, MESSAGE_SIZE);
+
+    //memory is generally setup in a way that iterating the first range
+    //in the tightest loop has the best cache coherence.
+    ::tbb::blocked_range3d<dax::Id> range(0, rangeMax[2],
+                                          0, rangeMax[1],
+                                          0, rangeMax[0]);
+
+    ScheduleKernelId3<FunctorType> kernel(functor,rangeMax);
+    kernel.SetErrorMessageBuffer(errorMessage);
+
+    ::tbb::parallel_for(range, kernel);
+
+    if (errorMessage.IsErrorRaised())
+      {
+      throw dax::cont::ErrorExecution(errorString);
+      }
+  }
+
+  DAX_CONT_EXPORT static void Synchronize()
+  {
+    // Nothing to do. This device schedules all of its operations using a
+    // split/join paradigm. This means that the if the control threaad is
+    // calling this method, then nothing should be running in the execution
+    // environment.
+  }
+
+};
+
+}
+} // namespace dax::cont
+\end{daxexample}
+
+\index{algorithm|)}
+\index{device~adapter!algorithm|)}
+
+\subsubsection{Timer Implementation}
+
+The Dax timer, described in Section~\ref{sec:Timers}, delegates to an
+internal class named \daxcont{DeviceAdapterTimerImplementation}. The
+interface for this class is the same as that for \daxcont{Timer}. A default
+implementation of this templated class uses the system timer and the
+\textcode{Synchronize} method in the device adapter algorithms.
+
+However, some devices might provide alternate or better methods for
+implementing timers. For example, the TBB library comes with a high
+resolution timer that has better accuracy than the standard system
+timers. Thus, the device adapter can optionally provide a specialization of
+\textidentifier{DeviceAdapterTimerImplementation}, which is typically
+placed in the same header file as the device adapter algorithms.
+
+The following example is the implementation of the TBB timer
+implementation.
+
+\begin{daxexample}{Implementation of \textidentifier{DeviceAdapterTimerImplementation} for TBB.}
+#include <dax/cont/DeviceAdapter.h>
+#include <dax/tbb/cont/internal/DeviceAdapterTagTBB.h>
+
+#include <tbb/tick_count.h>
+
+namespace dax {
+namespace cont {
+
+template<>
+class DeviceAdapterTimerImplementation<dax::tbb::cont::DeviceAdapterTagTBB>
+{
+public:
+  DAX_CONT_EXPORT DeviceAdapterTimerImplementation()
+  {
+    this->Reset();
+  }
+  DAX_CONT_EXPORT void Reset()
+  {
+    dax::cont::DeviceAdapterAlgorithm<dax::tbb::cont::DeviceAdapterTagTBB>::Synchronize();
+    this->StartTime = ::tbb::tick_count::now();
+  }
+  DAX_CONT_EXPORT dax::Scalar GetElapsedTime()
+  {
+    dax::cont::DeviceAdapterAlgorithm<dax::tbb::cont::DeviceAdapterTagTBB>::Synchronize();
+    ::tbb::tick_count currentTime = ::tbb::tick_count::now();
+    ::tbb::tick_count::interval_t elapsedTime = currentTime - this->StartTime;
+    return static_cast<dax::Scalar>(elapsedTime.seconds());
+  }
+
+private:
+  ::tbb::tick_count StartTime;
+};
+
+}
+} // namespace dax::cont
+\end{daxexample}
+
+A word of warning about implementing timers. Although
+\textcode{GetElapsedTime} returns a \dax{Scalar}, it is advisable to store
+the internal timing in its native data format until the elapsed time is
+recorded. This is because the times may be biased by a large value, and the
+floating point number might not hold enough precision to get a precise
+measurement between the start and end of the timer.
+
+\subsubsection{Testing}
+
+The implementation of a device adapter contains many components. To ensure
+that all of its device adapters are working properly, the Dax toolkit
+contains a complete test of all the components in
+\daxheader{dax/cont/testing}{TestingDeviceAdapter.h}. Here is the
+implementation for the TBB device adapter test, which plugs into the CMake
+testing framework.
+
+\begin{daxexample}{Test code for the TBB device adapter.}
+#include <dax/tbb/cont/DeviceAdapterTBB.h>
+
+#include <dax/cont/testing/TestingDeviceAdapter.h>
+
+int UnitTestDeviceAdapterTBB(int, char *[])
+{
+  return dax::cont::testing::TestingDeviceAdapter
+      <dax::tbb::cont::DeviceAdapterTagTBB>::Run();
+}
+\end{daxexample}
+
+\index{device~adapter|)}
 
 \index{control~environment|)}
 

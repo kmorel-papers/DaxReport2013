@@ -10,6 +10,7 @@ set(images
   SANDimages/SANDbackground.png
   images/DaxDiagram.pdf
   images/PackageHierarchy.pdf
+  images/CellConnections.pdf
   )
 
 set(input_docs

@@ -2748,9 +2748,15 @@ of \dax{Vertex3} values containing one for each point. The cell connections
 array is an array of \dax{Id} values. The length of this array is the
 number of cells times the number of vertices per cell. The connections for
 a particular cell are grouped together in adjacent array values. The cell
-connetions are given in CGNS order\lcite{CGNS}.
+connetions are given in CGNS order\lcite{CGNS}. An example cell connection
+array is given in Figure~\ref{fig:CellConnections}.
 
-\fix{A figure showing an example connection array would be good here.}
+\begin{figure}[htb]
+  \centering
+  \includegraphics{images/CellConnections}
+  \caption{The cell connection array for a simple triangle mesh.}
+  \label{fig:CellConnections}
+\end{figure}
 
 The unstructured grid class is templated on the cell type
 (\dax{CellTagHexahedron}, \dax{CellTagLine}, \dax{CellTagQuadrilateral},

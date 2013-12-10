@@ -335,14 +335,49 @@
 \maketitle
 
 \begin{abstract}
-  \fix{Add abstract}
+  We are on the threshold of a transformative change in the basic
+  architecture of high-performance computing.  The use of accelerator
+  processors, characterized by large core counts, shared but asymmetrical
+  memory, and heavy thread loading, is quickly becoming the norm in high
+  performance computing.  These accelerators represent significant
+  challenges in updating our existing base of software.  An intrinsic
+  problem with this transition is a fundamental programming shift from
+  message passing processes to much more fine thread scheduling with memory
+  sharing.  Another problem is the lack of stability in accelerator
+  implementation; processor and compiler technology is currently changing
+  rapidly. This report documents the results of our three-year ASCR project
+  to address these challenges. Our project includes the development of the
+  Dax toolkit, which contains the beginnings of new algorithms for a new
+  generation of computers and the underlying infrastructure to rapidly
+  prototype and build further algorithms as necessary.
 \end{abstract}
 
 \clearpage
 
 \chapter*{Acknowledgement}
 
-\fix{Add thanks and funding statements.}
+Thanks to everyone who contributed to this project and helped make it a
+success. Thanks to Kwan-Liu Ma from the University of California at Davis
+for the encouragement to start the project and subsequent support. Thanks to
+Berk Geveci and Utkarsh Ayachit from Kitware, Inc. for managing so many of
+the management and technical details of the project. Thanks to Robert
+Maynard from Kitware, Inc. for implementing the larger moiety of the code,
+and thanks to Brad King for implementing the impossibly cool meta template
+programs. Thanks to Robert Miller from the University of California at
+Davis for providing the foundational research that make connectivity
+possible. Finally, thanks to everyone in the SciDAC Scientific Data
+Management, Analysis, and Visualization Institute for recognizing Dax as a
+DOE solution for scientific visualization on advanced architectures.
+
+This work was supported in whole by the DOE Office of Science, Advanced
+Scientific Computing Research, under award number 10-014707, program
+manager Lucy Nowell.
+
+Sandia National Laboratories is a multi-program laboratory operated by
+Sandia Corporation, a wholly owned subsidiary of Lockheed Martin
+Corporation, for the U.S. Department of Energy's National Nuclear Security
+Administration.
+
 
 \cleardoublepage % TOC should start on an odd page
 \tableofcontents

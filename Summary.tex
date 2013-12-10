@@ -1,3 +1,166 @@
 % -*- latex -*-
 
-\fix{Write this.}
+The evolution of the computing world from teraflop to petaflop has been
+relatively effortless, with several of the existing programming models
+scaling effectively to the petascale. The migration to exascale, however,
+poses considerable challenges. All industry trends infer that the exascale
+machine will be built using processors containing hundreds to thousands of
+cores per chip. It can be inferred that efficient concurrency on exascale
+machines requires a massive amount of concurrent threads, each performing
+many operations on a localized piece of data.
+
+Currently, visualization libraries and applications are based off what is
+known as the visualization pipeline. In the pipeline model, algorithms are
+encapsulated as \keyterm{filters} with inputs and outputs. These filters
+are connected by setting the output of one component to the input of
+another. Parallelism in the visualization pipeline is achieved by
+replicating the pipeline for each processing thread. This works well for
+today's distributed memory parallel computers but cannot be sustained when
+operating on processors with thousands of cores.
+
+Our project investigates a new visualization framework designed to exhibit
+the pervasive parallelism necessary for extreme scale machines. Our
+framework achieves this by defining algorithms in terms of
+\keyterm{worklets}\index{worklet}, which are localized stateless
+operations. Worklets are atomic operations that execute when invoked unlike
+filters, which execute when a pipeline request occurs. The worklet design
+allows execution on a massive amount of lightweight threads with minimal
+overhead. Only with such fine-grained parallelism can we hope to fill the
+billions of threads we expect will be necessary for efficient computation
+on an exascale machine.
+
+
+\section*{Progress and Accomplishments}
+\addcontentsline{toc}{section}{Progress and Accomplishments}
+
+Although the ``Pervasive Parallel Processing Framework for Data
+Visualization and Analysis at Extreme Scale'' project is a research project
+to make progress on designing and implementing massively threaded
+visualization algorithms, our project also aims to explore techniques that
+simplify the development of such algorithms and to provide useful software
+for this purpose. To that end we have developed the Dax toolkit as a
+deployment platform for our research. The Dax toolkit is a comprehensive
+C++ header library that embodies the techniques developed within the
+project. A summary of our major accomplishments is as follows.
+
+\paragraph*{Development of Framework}
+
+Much thought has gone into the design of the core components of the toolkit
+API that users will use to define their analysis algorithms. The API has
+been developed to be succinct, type safe, and efficient when executing on
+multiple architectures. We developed adapters to enable execution and
+testing of the framework on multiple architectures including GPUs and
+CPUs. We added support for advanced core data structures needed for data
+analysis such as data set types, cell types, and structures for sorting
+geometrical and topological information. The framework supports advanced
+analysis algorithms including those that change both geometry and topology,
+such as marching cubes and threshold.
+  
+We reevaluated the use of pipelines for analysis on massively parallel
+architectures. The idea being that the framework would control the flow of
+execution and perform a limited sort of kernel fusion to maximize the
+amount of computation per data load. We concluded that the complexity in
+API and the toolkit implementation due to scheduling and execution of
+pipelines could be greatly simplified by abandoning the connected pipeline
+paradigm. Instead, the users directly manage the data flow by dispatching
+calls to analysis worklets in order. We find that the framework structure
+lends to developing in such a way as to encourage performing as many
+operations per data load as possible without further adjustment by the
+framework.
+
+\paragraph*{Cross-Platform Analysis}
+
+Our implementation now supports multiple target platforms including GPU
+(using CUDA\lcite{CUDA} via Thrust\lcite{Thrust}), multi-core CPUs (using
+either OpenMP\lcite{OpenMP} via Thrust or TBB\lcite{TBB}), and single core
+CPU. We achieve these cross-platform implementations through careful
+structure of the toolkit code. We have identified the basic features
+specific to each multithreaded device and encapsulated them in a unit
+called a \index{device~adapter}\keyterm{device adapter}. A device adapter
+can be implemented by providing only a thread scheduling mechanism although
+more efficient custom algorithms can be provided as well. A device adapter
+can be changed with a single template parameter, thus enabling the porting
+of the majority of code with very little development.
+
+\paragraph*{Development of Analysis Algorithms}
+
+We developed infrastructure to support analysis algorithms including those
+that change topology and geometry. These algorithms require multiple
+passes, particularly on architectures with memory restrictions, such as
+GPUs and potentially proposed exascale machines. With the framework API and
+infrastructure matured we developed key analysis algorithms that also
+exercise the framework. These include thresholding of cells using point
+fields, marching cubes for generating isosurfaces, and computing derived
+fields.
+
+\paragraph*{Software Infrastructure}
+
+For software reliability and correctness, we set up a software process
+including a testing framework, dashboards for daily regression testing and
+verification, a developer wiki for design and implementation discussions,
+doxygen for API documentation, and mailing list for developer
+communication.
+
+
+\section*{Presentations and Publications}
+\addcontentsline{toc}{section}{Presentations and Publications}
+
+During the course of our project, we presented our work to a broad audience
+to gain feedback and discuss the vision we have for parallelizing
+visualization algorithms. Some of the major locations where we presented
+the Dax toolkit are:
+
+\begin{description}
+  \raggedright
+\item\textbf{Dax: Data Analysis at Extreme,} paper by Kenneth Moreland,
+  Utkarsh Ayachit, Berk Geveci, and Kwan-Liu Ma. In Proceedings of SciDAC
+  2011, July 2011.
+\item\textbf{Dax Toolkit: A Proposed Framework for Data Analysis and
+  Visualization at Extreme Scale,} paper by Kenneth Moreland, Utkarsh
+  Ayachit, Berk Geveci, and Kwan-Liu Ma. In IEEE Symposium on Large-Scale
+  Data Analysis and Visualization (LDAV), October 2011.
+\item\textbf{Next-Generation Capabilities for Large-Scale Scientific
+  Visualization,} presentation by Kenneth Moreland. 15th SIAN Conference on
+  Parallel Processing for Scientific Computing, February 2012.
+\item\textbf{Next-Generation Codes/Portability: Dax Perspective,}
+  presentation by Kenneth Moreland, DOECGF, April 2012.
+\item\textbf{Oh, \$\#*@! Exascale! The Effect of Emerging Architectures on
+  Scientific Discovery,} paper by Kenneth Moreland. In 2012 SC Companion
+  (Proceedings of the Ultrascale Visualization Workshop), November 2012,
+  pg. 224-231. DOI 10.1109/SC.Companion.2012.38.
+\item\textbf{Dax for Multi- and Many-Core Architectures,} panel
+  presentation by Kenneth Moreland. Supercomputing, November 2012.
+\item\textbf{The SDAV Software Frameworks for Visualization and Analysis on
+  Next-Generation Multi-Core and Many-Core Architectures,} paper by
+  Christopher Sewell, Jeremy Meredith, Kenneth Moreland, Tom Peterka, Dave
+  DeMarle, La-ta Lo, James Ahrens, Robert Maynard, and Berk Geveci. In 2012
+  SC Companion (Proceedings of the Ultrascale Visualization Workshop),
+  November 2012, pg. 206-214. DOI 10.1109/SC.Companion.2012.36.
+\item\textbf{Flexible Analysis Software for Emerging Architectures,} paper
+  by Kenneth Moreland, Brad King, Robert Maynard, and Kwan-Liu Ma. In 2012
+  SC Companion (Proceedings of Petascale Data Analytics: Challenges and
+  Opportunities), November 2012. DOI 10.1109/SC.Companion.2012.115.
+\item\textbf{Optimizing Threshold for Extreme Scale Analysis,} poster by
+  Robert Maynard, Kenneth Moreland, Utkarsh Ayachit, Berk Geveci, and
+  Kwan-Liu Ma. In Proceedings of SPIE Visualization and Data Analysis,
+  February 2013.
+\item\textbf{A Survey of Visualization Pipelines,} paper by Kenneth
+  Moreland. IEEE Transactions on Visualization and Computer Graphics,
+  19(3), March 2013. DOI 10.1109/TVCG.2012.133.
+\item\textbf{DaxToolkit: Efficient Visualization at Extreme Scale,}
+  presentation by Robert Maynard, GPU Technology Conference, March 2013.
+\item\textbf{The effect of emerging architectures on data analysis
+  software,} panel presentation by Kenneth Moreland, SOS 17, March 2013.
+\item\textbf{Dax,} presentation by Kenneth Moreland, DOECGF, April 2013.
+\item\textbf{Research Challenges for Visualization Software,} paper by Hank
+  Childs, Berk Geveci, Will Schroeder, Jeremy Meredith, Kenneth Moreland,
+  Christopher Sewell, Torsten Kuhlen, and E. Wes Bethel. IEEE Computer,
+  46(5), May 2013, pg. 34-42. DOI 10.1109/MC.2013.179.
+\item\textbf{Upcoming Challenges for Scientific Visualization Software:
+  Programming Future Architectures,} panel presentation by Kenneth
+  Moreland, IEEE Visualization, October 2013.
+\item\textbf{A Classification of Scientific Visualization Algorithms for
+  Massive Threading,} paper by Kenneth Moreland, Berk Geveci, Kwan-Liu Ma,
+  and Robert Maynard. In Proceedings of the Ultrascale Visualization
+  Workshop, November 2013. DOI 10.1145/2535571.2535591.
+\end{description}

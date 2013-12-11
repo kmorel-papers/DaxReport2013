@@ -11,6 +11,7 @@ set(images
   images/DaxDiagram.pdf
   images/PackageHierarchy.pdf
   images/CellConnections.pdf
+  images/WorkletExampleAnnotated.pdf
   images/TimingThresholdPointMask.pdf
   images/TimingThresholdNoPointMask.pdf
   images/TimingMCManifold.pdf

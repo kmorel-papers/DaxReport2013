@@ -64,15 +64,16 @@
 %% \lstset{numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=2pt}
 \lstdefinelanguage{Dax}{
   morekeywords={struct,class,public,typedef, void, template, return, operator, const, for, int},
-  morekeywords={[2]_1,_2,_3,_4, In, Out, Point, Field, Topology,
-                   Id,Id2,Id3,Scalar,Tuple,Vector2,Vector3,Vector4,
+  morekeywords={[2]Id,Id2,Id3,Scalar,Tuple,Vector2,Vector3,Vector4,
                    make_Id2,make_Id3,make_Vector2,make_Vector3,make_Vector4,
-                   dot,NUM_COMPONENTS
+                   dot,NUM_COMPONENTS,
                    Extent3,Pair,
                    extentDimensions, extentCellDimensions,
                    flatIndexToIndex3Cell, index3ToFlatIndex,
                    index3ToFlatIndexCell,
                    WorkletMapField, WorkletMapCell,
+                   WorkletGenerateTopology, WorkletInterpolatedCell,
+                   WorkletGenerateKeysValues, WorkletReduceKeysValues,
                    TypeTraits,NumericTag,DimensionalityTag,
                    TypeTraitsRealTag,TypeTraitsIntegerTag,
                    TypeTraitsScalarTag,TypeTraitsVectorTag,
@@ -112,12 +113,15 @@
                    GenerateKeysValues,ReduceKeysValues,
                    UniformGrid,UnstructuredGrid,
                    Scheduler,
+                   CellField, CellVertices,
+                   InterpolatedCellPoints,
                    CellTraits,NUM_VERTICES,
                    CellTagHexahedron, CellTagLine, CellTagQuadrilateral,
                    CellTagTetrahedron, CellTagTriangle, CellTagVectex,
                    CellTagVoxel, CellTagWedge,
                    ParametricCoordinates, CellDerivative},
   morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT,
+                   DAX_EXEC_CONSTANT_EXPORT,
                    DAX_DEVICE_ADAPTER,
                    DAX_DEVICE_ADAPTER_SERIAL,
                    DAX_DEVICE_ADAPTER_CUDA,
@@ -132,7 +136,12 @@
                    DAX_ASSERT_CONT
                    },
   morekeywords={[4]dax,exec,cont,worklet,math,cuda,openmp,tbb,internal,detail},
-  morekeywords={[5]ControlSignature, ExecutionSignature}
+  morekeywords={[5]ControlSignature, ExecutionSignature,
+                   Field,Topology,Geometry,
+                   In,Out,Point,Cell,Vertices,Values,KeyGroup,ExecObject,
+                   WorkId,VisitIndex,
+                   _1,_2,_3,_4,_5,_6,_7,_8,_9
+                   }
 }
 \lstset{language=Dax}
 \lstset{
@@ -160,6 +169,11 @@
 
 \newcommand{\controlsignature}{\textsignature{ControlSignature}\index{control~signature}\index{signature!control}\xspace}
 \newcommand{\executionsignature}{\textsignature{ExecutionSignature}\index{execution~signature}\index{signature!execution}\xspace}
+
+\newcommand*{\sigtag}[1]{\textsignature{#1}\index{#1}\index{signature tags!#1}}
+\newcommand*{\sigtagnum}[1]{\sigtag{\_#1}}
+\newcommand*{\sigtagmod}[2]{\sigtag{#1}\textcode{(}\sigtag{#2}\textcode{)}}
+\newcommand*{\sigtagmodnum}[2]{\sigtag{#1}\textcode{(}\sigtagnum{#2}\textcode{)}}
 
 \newcommand*{\writenamespaceone}[1]{%
   \textnamespace{#1}}
@@ -255,7 +269,7 @@
 
 \newcommand*{\textfilename}[1]{\textsf{#1}}
 \newcommand*{\daxheader}[2]{%
-  \textfilename{#1/#2}\index{#1/#2}\index{#2}}
+  \textfilename{#1\fshyp{}#2}\index{#1\fshyp#2}\index{#2}}
 
 \newcommand*{\cmakevar}[1]{%
   \textsf{#1}%
@@ -382,7 +396,7 @@ Administration.
 \cleardoublepage % TOC should start on an odd page
 \tableofcontents
 \listoffigures
-\listoftables
+%\listoftables
 \lstlistoflistings
 
 \clearpage

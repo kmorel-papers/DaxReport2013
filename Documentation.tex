@@ -20,8 +20,8 @@ When documenting the Dax API, the following conventions are used.
   in \textnamespace{red}.
 \item Identifiers from the Dax toolkit are printed in
   \textidentifier{blue}.
-\item Signatures, described in Section~\ref{sec:GenericScheduling}, are
-  printed in \textsignature{green}.
+\item Signatures, described in Section~\ref{sec:GenericScheduling}, and the
+  tags used in them are printed in \textsignature{green}.
 \end{itemize}
 
 \section{Package Structure}
@@ -1043,7 +1043,7 @@ void RunThreshold(const dax::cont::UnstructuredGrid<CellType> &inGrid,
 
 \index{control~environment|(}
 
-The control environment is where code that interfaces with applications and
+The control environment is where code interfaces with applications and
 I/O devices. The associated API is designed for users that want to use the
 Dax toolkit to analyze their data using provided or supplied worklets. Code
 for the control environment is designed to run on a single thread (or one
@@ -1507,6 +1507,7 @@ void SortCheckArrayHandle(dax::cont::ArrayHandle<T> arrayHandle)
 \index{array~portal|)}
 
 \subsubsection{Interface to Execution Environment}
+\label{sec:ArrayHandleInterfaceToExecutionEnvironment}
 
 One of the main functions of the array handle is to allow an array to be
 defined in the control environment and then be used in the execution
@@ -3568,13 +3569,1142 @@ int UnitTestDeviceAdapterTBB(int, char *[])
 
 \index{execution~environment|(}
 
+The execution environment is exposed to developers that write worklets for
+different visualization algorithms. In addition to providing all the
+mechanisms for building the worklet object itself, the execution
+environment contains supporting code that can be useful to the
+implementations of visualization algorithms.
+
+The data structures in the execution environment provide information and
+operations for a single element. This is in contrast to the control
+environment, where data structures are built on arrays providing
+information for large collections of data. These respective data structures
+reflect the nature of the two environments. The control environment manages
+the stores of data whereas the execution environment performs large
+parallel processing through fine operations.
+
 \subsection{Creating Worklets}
 \label{sec:CreatingWorklets}
 
-\fix{-List of types}\\
-\fix{-Base Classes}\\
-\fix{-operator()} \\
-\fix{-signatures}
+\index{worklet|(}
+
+A worklet in Dax is most simply a functor that operates on an element of
+data. Thus, it is a \textcode{class} or \textcode{struct} that has an
+overloaded parenthesis operator (which must be declared \textcode{const}
+for thread safety). It also must inherit from one of the predefined
+abstract worker class, which will allow the Dax toolkit to load the correct
+scheduler. Finally, it must declare a pair of
+\index{signature}\keyterm{signatures} that define what information must be
+presented when invoking the worklet and how this information gets passed to
+each worklet invocation. Figure~\ref{fig:WorkletExampleAnnotated}
+demonstrates all of the required components of a worklet.
+
+\begin{figure}[htb]
+  \includegraphics[width=\linewidth]{images/WorkletExampleAnnotated}
+  \caption{Annotated example of a worklet declaration.}
+  \label{fig:WorkletExampleAnnotated}
+\end{figure}
+
+\subsubsection{Control Signature}
+
+\index{control~signature|(}
+\index{signature!control|(}
+
+The control signature of a worklet is the \textcode{typedef} of a function
+prototype named \controlsignature. The function prototype matches the
+calling specification used with the scheduler invoke function.
+
+The return type of the function prototype is always \textcode{void} because
+the scheduler invoke functions do not return values. The parameters of the
+function prototype are \index{signature tags}\keyterm{tags} that identify
+the type of data that is expected to be passed to invoke. For example, a
+\sigtag{Field} tag declares that the worklet will operate on field data,
+typically held in a \daxcont{ArrayHandle} whereas a \sigtag{Topology} tag
+declares that the worklet will operate on a grid structure like those
+documented in Section~\ref{sec:GridStructures}.
+
+Tags can also have modifiers on them, which are attached with
+parenthesis. For example, a \sigtag{Field} can be declared as either
+\sigtagmod{Field}{Point} or \sigtagmod{Field}{Cell}. Likewise, a field
+could be modfied to be either \sigtag{In} (the default) or
+\sigtag{Out}. \fix{Note that this method of using parenthesis to modify
+  tags is likely to change as some compilers do not support it.}
+
+The signature tags and their modifiers are described in greater detail in
+the following section on worklet types.
+
+\index{signature!control|)}
+\index{control~signature|)}
+
+\subsubsection{Execution Signature}
+
+\index{execution~signature|(}
+\index{signature!execution|(}
+
+Like the control signature, the execution signature of a worklet is the
+\textcode{typedef} of a function prototype named \executionsignature. The
+function prototype must match the parenthesis operator in terms of arity
+and argument sematics.
+
+The arguments of the \executionsignature's function prototype are tags that
+define where the data comes from. The most common tags are an underscore
+followed by a number, such as \sigtagnum{1}, \sigtagnum{2}, etc. These
+numbers refer back to the corresponding argument in the
+\controlsignature. For example, \sigtagnum{1} means data from the first
+control signature argument, \sigtagnum{2} meands data from the second
+control signature argument, etc.
+
+Unlike the control signature, the execution signature optionally can
+declare a return type if the parenthesis operator returns a value. If this
+is the case, the return value should be one of the numeric tags
+(i.e. \sigtagnum{1}, \sigtagnum{2}, etc.) to refer to one of the data
+structures of the control signature. If the parenthesis operator does not
+return a value, then \executionsignature should declare the return type as
+\textcode{void}.
+
+In addition to the numeric tags, there are other execution signature tags
+to represent other types of data. For example, the \sigtag{WorkId} tag
+identifies the instance of the worklet invocation. Each call to the worklet
+function will have a unique \sigtag{WorkId}. Other such tags exist and are
+described in the following section on worklet types where appropriate.
+
+\index{signature!execution|)}
+\index{execution~signature|)}
+
+\subsubsection{Worklet Types}
+
+\index{worklet types|(}
+
+There are multiple worklet types provided by the Dax toolkit, each designed
+to support a particular type of operation. This section will define each of
+the worklet types, identify the generic superclass that a worklet instance
+should derive, identify the signature tags and their meanings, and give an
+example of the worklet in use.
+
+\paragraph{Field Map}
+
+\index{worklet types!field map|(}
+\index{field map worklet|(}
+\index{map field|see{field map worklet}}
+
+A worklet deriving \daxexec{WorkletMapField} performs a basic mapping
+operation that applies a function (the operator in the worklet) on all the
+field values at a single point or cell and creates a new field value at
+that same location. Although the intention is to operate on some variable
+over the mesh, a \daxexec{WorkletMapField} actually be applied to any
+array.
+
+A field map worklet has only one type of \controlsignature tag:
+\sigtag{Field}. This tag corresponds to a \daxcont{ArrayHandle} passed to
+invoke, and each invocation of the worklet gets or sets a single value in
+this array. The \sigtag{Field} tag can be modified to be either \sigtag{In}
+(the default) or \sigtag{Out}.
+
+A field map worklet supports the standard tags in its
+\executionsignature. These are the numeric tags (e.g. \sigtagnum{1},
+\sigtagnum{2}, etc.) and the \sigtag{WorkId} tag, which uniquely identifies
+the invocation instance of the worklet.
+
+Field maps most commonly perform basic calculator arithmetic, as
+demonstrated in the following example.
+
+\begin{daxexample}{Declaration and use of a field map worklet.}
+#include <dax/exec/WorkletMapField.h>
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/math/VectorAnalysis.h>
+
+class Magnitude : public dax::exec::WorkletMapField
+{
+public:
+  typedef void ControlSignature(Field(In), Field(Out));
+  typedef void ExecutionSignature(_1,_2);
+
+  DAX_EXEC_EXPORT
+  void operator()(const dax::Vector3 &inValue,
+                  dax::Scalar &outValue) const
+  {
+    outValue = dax::math::Magnitude(inValue);
+  }
+};
+
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar>
+InvokeMagnitude(dax::cont::ArrayHandle<dax::Vector3> input)
+{
+  dax::cont::ArrayHandle<dax::Scalar> output;
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(Magnitude(), input, output);
+
+  return output;
+}
+\end{daxexample}
+
+\index{field map worklet|)}
+\index{worklet types!field map|)}
+
+\paragraph{Cell Map}
+
+\index{worklet types!cell map|(}
+\index{cell map worklet|(}
+\index{map cell|see{cell map worklet}}
+
+A worklet deriving \daxexec{WorkletMapCell} performs a mapping operation
+that applies a function (the operator in the worklet) on field values on a
+single cell and creates a new field value at that location. The function
+has access to all field values local to that cell. So if an input is a
+point field, the operation will have access to all the values of that
+field.
+
+A cell map worklet supports the following tags in the parameters of its
+\controlsignature.
+\begin{description}
+\item[\sigtag{Topology}] This tag corresponds to one of the grid structures
+  described in Section~\ref{sec:GridStructures} passed to invoke that holds
+  the topology on which to apply the map.
+
+  If the \sigtag{Topology} argument is referenced with a numeric tag in the
+  \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
+  receives the cell-type tag (such as \dax{CellTagTriangle} or
+  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  on the cell type, but usually unnecessary.
+
+  If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
+  tag wrapping a numeric tag (e.g. with \sigtagmodnum{Vertices}{1}), then
+  the worklet function is passed a \daxexec{CellVertices} object that
+  contains the point indices for all the vertices of the cell.
+\item[\sigtag{Field}] This tag corresponds to a \daxcont{ArrayHandle}
+  passed to invoke that holds the sample values for a field at all points
+  or all cells. The \sigtag{Field} tag can be modified to be either
+  \sigtag{In} (the default) or \sigtag{Out}. Input \sigtag{Field} tags can
+  be further modified to be attached to \sigtag{Point}s or
+  \sigtag{Cell}s. The size of the input \daxcont{ArrayHandle} must match
+  the number of points or cells in the grid structure passed in as a
+  \sigtag{Topology} argument.  Output fields are always attached to the
+  cells, and the corresponding \daxcont{ArrayHandle} will be resized as
+  necessary.
+
+  A cell field has a one-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters. Thus, when the
+  \executionsignature references a \controlsignature \sigtag{Field}
+  parameter (e.g. with \sigtagnum{2}), the parameter is the same as the
+  basic type as the values in the array (typically something like
+  \dax{Scalar} or \dax{Vector3}).
+
+  A point field has a many-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters because each cell can touch
+  multiple points. So when a \daxcont{ArrayHandle} is translated to the
+  worklet invocation, its values get passed in a \daxexec{CellField}
+  object, which behaves like a \dax{Tuple} with a size matching the number
+  of vertices in a cell.
+\end{description}
+
+A cell map worklet supports the following tags in the parameters of its
+\executionsignature.
+\begin{description}
+\item[\sigtagnum{1}, \sigtagnum{2},$\ldots$] These reference the
+  corresponding parameter in the \controlsignature.
+\item[\sigtag{Vertices}] When modified by one of the numeric tags
+  (e.g. \sigtagmodnum{Vertices}{1}), passes a \daxexec{CellVertices} to the
+  worklet representing the point indices for each vertex of the cell.
+\item[\sigtag{WorkId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance of the worklet.
+\end{description}
+
+Cell maps most commonly perform operations on interpolated fields. They
+often use the cell operations provided by the Dax toolkit and described in
+Section~\ref{sec:CellsAndOperations}. The following example shows a cell
+map worklet that simply averages all the point values it touches. A more
+serious worklet would probably perform interpolations, derivatives, or
+integrations over the cell.
+
+\begin{daxexample}{Declaration and use of a cell map worklet.}
+#include <dax/exec/WorkletMapCell.h>
+
+#include <dax/exec/CellField.h>
+
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/UniformGrid.h>
+
+class CellAverage : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Point), Field(Out));
+  typedef _3 ExecutionSignature(_1,_2);
+
+  template<class CellTag>
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(
+    CellTag, const dax::exec::CellField<dax::Scalar,CellTag> &values) const
+  {
+    dax::Scalar sum = values[0];
+    for (int index = 1; index < values.NUM_VERTICES; index++)
+      {
+      sum += values[index];
+      }
+    return sum/values.NUM_VERTICES;
+  }
+};
+
+DAX_CONT_EXPORT
+void InvokeCellAverage()
+{
+  const dax::Id DIM = 100;
+
+  // Make a grid structure.
+  dax::cont::UniformGrid<> grid;
+  grid.SetExtent(dax::make_Id3(0, 0, 0), dax::make_Id3(DIM-1, DIM-1, DIM-1));
+
+  // Make input.
+  // (A real application would make more interesting data and do it more efficiently.)
+  dax::Scalar inputBuffer[DIM*DIM*DIM];
+  for (dax::Id index = 0; index < DIM*DIM*DIM; index++)
+    {
+    inputBuffer[index] = index;
+    }
+  dax::cont::ArrayHandle<dax::Scalar> input =
+      dax::cont::make_ArrayHandle(inputBuffer, DIM*DIM*DIM);
+
+  dax::cont::ArrayHandle<dax::Scalar> output;
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(CellAverage(), grid, input, output);
+
+  // Do something with output.
+}
+
+\end{daxexample}
+
+\index{cell map worklet|)}
+\index{worklet types!cell map|)}
+
+\paragraph{Generate Topology}
+
+\index{worklet types!generate topology|(}
+\index{generate topology worklet|(}
+
+A worklet deriving from \daxexec{WorkletGenerateTopology} generates a cell
+connectivity. When invoked, the scheduler is given an array containing the
+number of output cells derived from each input cell. Each invocation of a
+\daxexec{WorkletGenerateTopology} produces exactly one cell, so the
+scheduler then invokes the generate topology worklet multiple times per
+cell if multiple cells are derived.
+
+A generate topology worklet supports the following tags in the parameters
+of its \controlsignature.
+\begin{description}
+\item[\sigtag{Topology}] This tag corresponds to one of the grid structures
+  described in Section~\ref{sec:GridStructures} passed to invoke that holds
+  the topology on which to derive a new topology or to write the new
+  topology into. The \sigtag{Topology} tag can be modified to be either
+  \sigtag{In} (the default) or \sigtag{Out}.
+
+  If the \sigtag{Topology} argument is referenced with a numeric tag in the
+  \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
+  receives the cell-type tag (such as \dax{CellTagTriangle} or
+  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  on the cell type, but usually unnecessary.
+
+  If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
+  tag wrapping a numeric tag (e.g. with \sigtagmodnum{Vertices}{1}), then
+  the worklet function is passed a \daxexec{CellVertices} object that
+  contains the point indices for all the vertices of the cell.
+\item[\sigtag{Field}] This tag corresponds to a \daxcont{ArrayHandle}
+  passed to invoke that holds the sample values for a field at all points
+  or all cells. All fields for generate topology worklets are input. The
+  \sigtag{Field} tag can be modified to be attached to \sigtag{Point}s or
+  \sigtag{Cell}s. The size of the \daxcont{ArrayHandle} must match the
+  number of points or cells in the grid structure passed in as a
+  \sigtag{Topology} argument.
+
+  A cell field has a one-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters. Thus, when the
+  \executionsignature references a \controlsignature \sigtag{Field}
+  parameter (e.g. with \sigtagnum{2}), the parameter is the same as the
+  basic type as the values in the array (typically something like
+  \dax{Scalar} or \dax{Vector3}).
+
+  A point field has a many-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters because each cell can touch
+  multiple points. So when a \daxcont{ArrayHandle} is translated to the
+  worklet invocation, its values get passed in a \daxexec{CellField}
+  object, which behaves like a \dax{Tuple} with a size matching the number
+  of vertices in a cell.
+\end{description}
+
+A generate topology worklet supports the following tags in the parameters
+of its \executionsignature.
+\begin{description}
+\item[\sigtagnum{1}, \sigtagnum{2},$\ldots$] These reference the
+  corresponding parameter in the \controlsignature.
+\item[\sigtag{Vertices}] When modified by one of the numeric tags
+  (e.g. \sigtagmodnum{Vertices}{1}), passes a \daxexec{CellVertices} to the
+  worklet representing the point indices for each vertex of the cell. The
+  numeric tag must point to a \controlsignature parameter of type
+  \sigtag{Topology}.
+\item[\sigtag{VisitId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance for the particular cell being visited. For example,
+  if dividing hexahedra into tetrahedra, each hexahedra produces 5 or 6
+  tetrahedra, but each invocation of the generate topology worklet
+  generates just one of this. The \sigtag{VisitId} identifies which of the
+  tetrahedra to produce.
+\item[\sigtag{WorkId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance of the worklet.
+\end{description}
+
+Generate topology operations are used when one topology is derived from
+another's points. A generate topology is often proceeded by a field map or
+cell map that counts how many cells will be derived from each input
+cell. These counts are stored in an array and held in a
+\daxcont{GenerateTopology} object that wraps the worklet and is passed to
+the scheduler. \fix{This should change soon.}
+
+The following example converts a uniform grid of voxels into the a
+collection of quadrilaterals that make up the faces. The worklet leverages
+the implicit topology of a uniform grid to ensure that each face is
+represented exactly once.
+
+\begin{daxexample}{Declaration and use of a generate topology worklet.}
+#include <dax/exec/WorkletGenerateTopology.h>
+
+#include <dax/Extent.h>
+
+#include <dax/exec/CellVertices.h>
+#include <dax/exec/WorkletMapCell.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/GenerateTopology.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UniformGrid.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+DAX_EXEC_CONSTANT_EXPORT
+const unsigned char VoxelFaces[6][4] = {
+  { 0, 3, 7, 4 },
+  { 0, 4, 5, 1 },
+  { 0, 1, 2, 3 },
+  { 1, 2, 6, 5 },
+  { 2, 3, 7, 6 },
+  { 4, 5, 6, 7 }
+};
+
+class CountFaceOut : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Out), Field(Out));
+  typedef _3 ExecutionSignature(WorkId, _2);
+
+  DAX_CONT_EXPORT
+  CountFaceOut(dax::Id3 dimensions) : Dimensions(dimensions) {  }
+
+  DAX_EXEC_EXPORT
+  dax::Id operator()(dax::Id workId, dax::Tuple<unsigned char,6> &faceToOutput) const
+  {
+    dax::Id3 index3D;
+    dax::Id flatIndex = workId;
+    for (i = 0; i < 3; i++)
+      {
+      index3D[i] = flatIndex % this->Dimensions[i];
+      flatIndex /= this->Dimensions[i];
+      }
+
+    dax::Id count = 0;
+    // First three faces output on all cells.
+    faceToOutput[count] = 0;  count++;
+    faceToOutput[count] = 1;  count++;
+    faceToOutput[count] = 2;  count++;
+
+    // Second three faces output only on cells at maximum boundary.
+    if (flatIndex[0] == this->Dimensions[0]-1) { faceToOutput[count] = 3;  count++; }
+    if (flatIndex[1] == this->Dimensions[1]-1) { faceToOutput[count] = 4;  count++; }
+    if (flatIndex[2] == this->Dimensions[2]-1) { faceToOutput[count] = 5;  count++; }
+
+    return count;
+  }
+
+private:
+  dax::Id3 Dimensions;
+};
+
+class ExtractFace : public dax::exec::WorkletGenerateTopology
+{
+public:
+  typedef void ControlSignature(Topology, Topology(Out), Field);
+  typedef void ExecutionSignature(Vertices(_1), Vertices(_2), _3, VisitIndex);
+
+  DAX_EXEC_EXPORT
+  void operator()(const dax::exec::CellVertices<dax::CellTagVoxel> &inVertices,
+                  dax::exec::CellVertices<dax::CellTagQuadrilateral> &outVertices,
+                  const dax::Tuple<unsigned char,6> outputFaces,
+                  dax::Id visitIndex) const
+  {
+    unsigned char faceId = outputFaces[visitIndex];
+    outVertices[0] = inVertices[VoxelFaces[faceId][0]];
+    outVertices[1] = inVertices[VoxelFaces[faceId][1]];
+    outVertices[2] = inVertices[VoxelFaces[faceId][2]];
+    outVertices[3] = inVertices[VoxelFaces[faceId][3]];
+  }
+};
+
+DAX_CONT_EXPORT
+dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral>
+InvokeExtraceFaces(const dax::cont::UniformGrid<> &inputGrid)
+{
+  dax::Id3 dimensions = dax::extentCellDimensions(inputGrid.GetExtent());
+
+  dax::cont::ArrayHandle<dax::Tuple<unsigned char,6> > faces;
+  dax::cont::ArrayHandle<dax::Id> counts;
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(CountFaceOut(dimensions), inputGrid, faces, counts);
+
+  dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral> outputGrid;
+
+  dax::cont::GenerateTopology<ExtractFace> extractFace(counts);
+  extractFace.SetRemoveDuplicatePoints(false); // All points will be used.
+  scheduler.Invoke(extractFace, inputGrid, outputGrid, faces);
+
+  return outputGrid;
+}
+\end{daxexample}
+
+\index{generate topology worklet|)}
+\index{worklet types!generate topology|)}
+
+\paragraph{Interpolated Cell}
+
+\index{worklet types!interpolated cell|(}
+\index{interpolated cell worklet|(}
+
+A worklet deriving from \daxexec{WorkletInterpolatedCell} generates a new
+geometry comprising both new points at new coordinates and cell connections
+among those points. When invoked, the scheduler is given an array
+containing the number of cells produced. (The cell type must be
+homogeneous.) Each invocation of a \daxexec{WorkletInterpolatedCell}
+produces exactly one cell and its associated points, so the scheduler then
+invokes the interpolated cell worklet multiple times per cell if multiple
+cells are derived.
+
+An interpolated cell worklet supports the following tags in the parameters
+of its \controlsignature.
+\begin{description}
+\item[\sigtag{Topology}] This tag corresponds to one of the grid structures
+  described in Section~\ref{sec:GridStructures} passed to invoke that holds
+  the topology on which to derive a new topology.
+
+  If the \sigtag{Topology} argument is referenced with a numeric tag in the
+  \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
+  receives the cell-type tag (such as \dax{CellTagTriangle} or
+  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  on the cell type, but usually unnecessary.
+
+  If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
+  tag wrapping a numeric tag (e.g. with \sigtagmodnum{Vertices}{1}), then
+  the worklet function is passed a \daxexec{CellVertices} object that
+  contains the point indices for all the vertices of the cell.
+\item[\sigtag{Geometry}] This tag corresponds to one of the grid structures
+  described in Section~\ref{sec:GridStructures} passed to
+  invoke. Parameters of this type access the full geometry of the grid
+  including both point locations and cell connections. The
+  \sigtag{Geometry} tag is always used in the output of an interpolated
+  cell worklet, and so should be modified with \sigtag{Out}.
+
+  When the \executionsignature references a \controlsignature
+  \sigtag{Geometry} parameter (e.g. with \sigtagnum{2}), the parameter is a
+  \daxexec{InterpolatedCellPoints} object. The worklet operator should pass
+  this parameter by reference so that it may be filled and the results
+  returned.
+\item[\sigtag{Field}] This tag corresponds to a \daxcont{ArrayHandle}
+  passed to invoke that holds the sample values for a field at all points
+  or all cells. All fields for generate topology worklets are input. The
+  \sigtag{Field} tag can be modified to be attached to \sigtag{Point}s or
+  \sigtag{Cell}s. The size of the \daxcont{ArrayHandle} must match the
+  number of points or cells in the grid structure passed in as a
+  \sigtag{Topology} argument.
+
+  A cell field has a one-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters. Thus, when the
+  \executionsignature references a \controlsignature \sigtag{Field}
+  parameter (e.g. with \sigtagnum{2}), the parameter is the same as the
+  basic type as the values in the array (typically something like
+  \dax{Scalar} or \dax{Vector3}).
+
+  A point field has a many-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters because each cell can touch
+  multiple points. So when a \daxcont{ArrayHandle} is translated to the
+  worklet invocation, its values get passed in a \daxexec{CellField}
+  object, which behaves like a \dax{Tuple} with a size matching the number
+  of vertices in a cell.
+\end{description}
+
+An interpolated cell worklet supports the following tags in the parameters
+of its \executionsignature.
+\begin{description}
+\item[\sigtagnum{1}, \sigtagnum{2},$\ldots$] These reference the
+  corresponding parameter in the \controlsignature.
+\item[\sigtag{Vertices}] When modified by one of the numeric tags
+  (e.g. \sigtagmodnum{Vertices}{1}), passes a \daxexec{CellVertices} to the
+  worklet representing the point indices for each vertex of the cell. The
+  numeric tag must point to a \controlsignature parameter of type
+  \sigtag{Topology}.
+\item[\sigtag{VisitId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance for the particular cell being visited. For example,
+  if dividing hexahedra into tetrahedra, each hexahedra produces 5 or 6
+  tetrahedra, but each invocation of the generate topology worklet
+  generates just one of this. The \sigtag{VisitId} identifies which of the
+  tetrahedra to produce.
+\item[\sigtag{WorkId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance of the worklet.
+\end{description}
+
+Interpolated cell operations are used when one topology is derived from
+another, but the new topology can build cells in unconstrained ways. An
+interpolated cell is often proceeded by a field map or cell map that counts
+how many cells will be derived from each input cell. These counts are
+stored in an array and held in a \daxcont{GenerateInterpolatedCells} class
+that wraps the worklet and is passed to the scheduler. \fix{This should
+  change soon.}
+
+The following example performs a slice on a uniform grid using a plane that
+is aligned with the x axis (parallel with the y-z plane). With these
+constraints, we know that the intersection of every cell will be a
+quadrilateral.
+
+\begin{daxexample}{Declaration and use of an interpolated cell worklet.}
+#include <dax/exec/WorkletInterpolatedCell.h>
+
+#include <dax/exec/CellField.h>
+#include <dax/exec/CellVertices.h>
+#include <dax/exec/InterpolatedCellPoints.h>
+#include <dax/exec/WorkletMapCell.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/GenerateInterpolatedCells.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UniformGrid.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+class CountXSliceOut : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Point), Field(Out));
+  typedef _3 ExecutionSignature(_2);
+
+  DAX_CONT_EXPORT
+  CountXSliceOut(dax::Scalar xIntercept) : XIntercept(xIntercept) {  }
+
+  DAX_EXEC_EXPORT
+  dax::Id operator()(
+      const dax::exec::CellField<dax::Vector3, dax::CellTagVoxel> &pointCoordinates) const
+  {
+    dax::Scalar minX = pointCoordinates[0][0];
+    dax::Scalar maxX = pointCoordinates[6][0];
+
+    return ((minX <= this->XIntercept) && (this->XIntercept < maxX)) ? 1 : 0;
+  }
+
+private:
+  dax::Scalar XIntercept;
+};
+
+class XSlice : public dax::exec::WorkletInterpolatedCell
+{
+public:
+  typedef void ControlSignature(Topology, Geometry(Out), Field(Point));
+  typedef void ExecutionSignature(Vertices(_1), _2, _3);
+
+  DAX_CONT_EXPORT
+  XSlice(dax::Scalar xIntercept) : XIntercept(xIntercept) {  }
+
+  DAX_EXEC_EXPORT
+  void operator()(
+      const dax::exec::CellVertices<dax::CellTagVoxel> &inVertices,
+      dax::exec::InterpolatedCellPoints<dax::CellTagQuadrilateral> &outVertices,
+      const dax::exec::CellField<dax::Vector3, dax::CellTagVoxel> &pointCoordinates) const
+  {
+    dax::Scalar minX = pointCoordinates[0][0];
+    dax::Scalar maxX = pointCoordinates[6][0];
+    dax::Scalar interpolant = (this->XIntercept - minX)/(maxX - minX);
+
+    outVertices.SetInterpolationPoint(0, inVertices[0], inVertices[1], interpolant);
+    outVertices.SetInterpolationPoint(1, inVertices[3], inVertices[2], interpolant);
+    outVertices.SetInterpolationPoint(2, inVertices[4], inVertices[5], interpolant);
+    outVertices.SetInterpolationPoint(3, inVertices[7], inVertices[6], interpolant);
+  }
+
+private:
+  dax::Scalar XIntercept;
+};
+
+DAX_CONT_EXPORT
+dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral>
+InvokeXSlice(const dax::cont::UniformGrid<> &inputGrid, dax::Scalar xIntercept)
+{
+  dax::cont::ArrayHandle<dax::Id> counts;
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(CountXSliceOut(xIntercept),
+                   inputGrid,
+                   inputGrid.GetPointCoordinates(),
+                   counts);
+
+  dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral> outputGrid;
+
+  dax::cont::GenerateInterpolatedCells<XSlice> slicer(count, XSlice(xIntercept));
+  extractFace.SetRemoveDuplicatePoints(true);
+  scheduler.Invoke(slicer, inputGrid, outputGrid, inputGrid.GetPointCoordinates());
+
+  return outputGrid;
+}
+\end{daxexample}
+
+\index{interpolated cell worklet|)}
+\index{worklet types!interpolated cell|)}
+
+\paragraph{Generate Keys and Values}
+
+\index{worklet types!generate keys and values|(}
+\index{generate keys and values worklet|(}
+
+A worklet deriving from \daxexec{WorkletGenerateKeysValues}, which is
+designed to be used in conjunction with the reduce keys and values worklet,
+is an experimental type of worklet that can be applied to a variety of
+visualization algorithms. They allow an algorithm with a lot of
+interdependence to operate with lots of concurrency by storing and
+deferring the interdependent operation.
+
+In operation the generate keys and values worklet works very much like a
+cell map worklet except that it is able to produce a variable amount of
+field values per cell. Each invocation of a
+\daxexec{WorkletGenerateKeysValues} generates one set of keys and values,
+so the scheduler then invokes the worklet multiple times per cell if
+multiple key-value sets are needed.
+
+Although the \daxexec{WorkletGenerateKeysValues} worklet is expected to
+generate keys and values which have distinct semantics, the worklet itself
+does not distinguish between them. Instead, both keys and values are simply
+considered output fields.
+
+A generate keys and values worklet supports the following tags in the
+parameters of its \controlsignature.
+\begin{description}
+\item[\sigtag{Topology}] This tag corresponds to one of the grid structures
+  described in Section~\ref{sec:GridStructures} passed to invoke that holds
+  the topology on which to apply the map.
+
+  If the \sigtag{Topology} argument is referenced with a numeric tag in the
+  \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
+  receives the cell-type tag (such as \dax{CellTagTriangle} or
+  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  on the cell type, but usually unnecessary.
+
+  If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
+  tag wrapping a numeric tag (e.g. with \sigtagmodnum{Vertices}{1}), then
+  the worklet function is passed a \daxexec{CellVertices} object that
+  contains the point indices for all the vertices of the cell.
+\item[\sigtag{Field}] This tag corresponds to a \daxcont{ArrayHandle}
+  passed to invoke that holds the sample values for a field at all points
+  or all cells. The \sigtag{Field} tag can be modified to be either
+  \sigtag{In} (the default) or \sigtag{Out}. Input \sigtag{Field} tags can
+  be further modified to be attached to \sigtag{Point}s or
+  \sigtag{Cell}s. The size of the input \daxcont{ArrayHandle} must match
+  the number of points or cells in the grid structure passed in as a
+  \sigtag{Topology} argument.  Output fields are always attached to the
+  cells, and the corresponding \daxcont{ArrayHandle} will be resized as
+  necessary.
+
+  A cell field has a one-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters. Thus, when the
+  \executionsignature references a \controlsignature \sigtag{Field}
+  parameter (e.g. with \sigtagnum{2}), the parameter is the same as the
+  basic type as the values in the array (typically something like
+  \dax{Scalar} or \dax{Vector3}).
+
+  A point field has a many-to-one mapping between \daxcont{ArrayHandle}
+  entries and worklet function parameters because each cell can touch
+  multiple points. So when a \daxcont{ArrayHandle} is translated to the
+  worklet invocation, its values get passed in a \daxexec{CellField}
+  object, which behaves like a \dax{Tuple} with a size matching the number
+  of vertices in a cell.
+\end{description}
+
+A generate keys and values worklet supports the following tags in the
+parameters of its \executionsignature.
+\begin{description}
+\item[\sigtagnum{1}, \sigtagnum{2},$\ldots$] These reference the
+  corresponding parameter in the \controlsignature.
+\item[\sigtag{Vertices}] When modified by one of the numeric tags
+  (e.g. \sigtagmodnum{Vertices}{1}), passes a \daxexec{CellVertices} to the
+  worklet representing the point indices for each vertex of the cell.
+\item[\sigtag{VisitId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance for the particular cell being visited. For example,
+  if performing an operation on all cell values incident to a point, these
+  values can be collected by generating keys on the point index. Each cell
+  will generate one key-value per vertex, and the \sigtag{VisitId}
+  identifies which of the vertices to key on.
+\item[\sigtag{WorkId}] Produces a \dax{Id} that uniquely identifies the
+  invocation instance of the worklet.
+\end{description}
+
+When invoking, the scheduler needs to know how many key-values to produce
+per cell. These counts are stored in an array hand held in a
+\daxcont{GenerateKeysValues} object that wraps the worklet and is passed to
+the scheduler. \fix{This should change soon.} If all cells produced the
+same number of key-values, then the implicit \daxcont{ArrayHandleConstant}
+can be used.
+
+An example of defining and using a generate keys and values worklet is
+given in the next section in conjunction with a reduce keys and values
+worklet.
+
+\index{generate keys and values worklet|)}
+\index{worklet types!generate keys and values|)}
+
+\paragraph{Reduce Keys and Values}
+
+\index{worklet types!reduce keys and values|(}
+\index{reduce keys and values worklet|(}
+
+A worklet deriving from \daxexec{WorkletReduceKeysValues} is an
+experimental type of worklet that can be applied to a variety of
+visualization algorithms. They allow an algorithm with a lot of
+interdependence to operate with lots of concurrency by storing and
+deferring the interdependent operation.
+
+When invoking a \daxexec{WorkletReduceKeysValues}, the scheduler groups
+values based on their associated keys and calls a single instance of the
+worklet for every unique key given. The keys are given to the scheduler
+through a \daxcont{ReduceKeysValues} object that wraps the
+worklet. \fix{This should change soon.} The values are passed as parameters
+and are automatically grouped by key before being passed to the worklet.
+
+A reduce keys and values worklet supports only one tags in the parameters
+of its \controlsignature: \sigtag{Value}. A \sigtag{Value} corresponds to a
+\daxcont{ArrayHandle} passed into the invoke method. The \sigtag{Value} tag
+can be modified to be either \sigtag{In} or \sigtag{Out}. The semantics of
+the input and output values are a bit different.
+
+A \sigtagmod{Value}{In} corresponds to an input \daxcont{ArrayHandle} with
+the same number of entries as there are keys. This type of parameter must
+be referenced in the \executionsignature using the \sigtag{KeyGroup} tag
+modified by the numeric tag (for example, \sigtagmodnum{KeyGroup}{1}). The
+values of the group are passed in through a \daxexec{KeyGroup} object. A
+\textidentifier{KeyGroup} object has a \textcode{GetNumberOfValues} method
+that returns the number of values in the group and a \textcode{Get} method
+that retrieves the value with a given group
+index. \textidentifier{KeyGroup} objects also have an overloaded bracket
+operator so that they can be referenced like an array or tuple.
+
+A \sigtagmod{Value}{Out} corresponds to an output
+\daxcont{ArrayHandle}. The scheduler will resize this array to the number
+of unique keys, and each instance of the worklet produces one entry into
+this array. This type of parameter is referenced in the \executionsignature
+simply with a numeric tag (such as \sigtagnum{2}).
+
+The following example shows a pair of generate keys-values and reduce
+keys-values worklets that, for each point, simply averages all the cell
+values it touches.
+
+\begin{daxexample}{Declaration and use of generation and reduction of keys and values.}
+#include <dax/exec/WorkletGenerateKeysValues.h>
+#include <dax/exec/WorkletReduceKeysValues.h>
+
+#include <dax/CellTraits.h>
+
+#include <dax/exec/CellVertices.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/ArrayHandleConstant.h>
+#include <dax/cont/GenerateKeysValues.h>
+#include <dax/cont/ReduceKeysValues.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+class PointAverageGenerateKeys : public dax::exec::WorkletGenerateKeysValues
+{
+public:
+  typedef void ControlSignature(Topology, Field(Cell), Field(Out), Field(Out));
+  typedef void ExecutionSignature(Vertices(_1), _2, _3, _4, VisitIndex);
+
+  template<typename CellTag>
+  DAX_EXEC_EXPORT
+  void operator()(const dax::exec::CellVertices<CellTag> &cellVertices,
+                  dax::Scalar fieldValue,
+                  dax::Id &outKey,
+                  dax::Scalar &outValue,
+                  dax::Id visitIndex) const
+  {
+    outKey = cellVertices[visitIndex];
+    outValue = fieldValue;
+  }
+};
+
+class PointAverageReduceKeys : public dax::exec::WorkletReduceKeysValues
+{
+public:
+  typedef void ControlSignature(Values(In), Values(Out));
+  typedef _2 ExecutionSignature(KeyGroup(_1));
+
+  template<typename KeyGroupType>
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(KeyGroupType keyGroup) const
+  {
+    dax::Scalar sum = keyGroup[0];
+    for (dax::Id index = 1; index < keyGroup.GetNumberOfValues(); index++)
+      {
+      sum += keyGroup[index];
+      }
+    return sum/keyGroup.GetNumberOfValues();
+  }
+};
+
+template<typename CellTag>
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar>
+InvokePointAverage(dax::cont::UnstructuredGrid<CellTag> grid,
+                   dax::cont::ArrayHandle<dax::Scalar> inputCellField)
+{
+  typedef dax::cont::ArrayHandleConstant<dax::Id> CountArrayType;
+  CountArrayType counts(dax::CellTraits<CellTag>::NUM_VERTICES, grid.GetNumberOfCells());
+
+  dax::cont::ArrayHandle<dax::Id> keys;
+  dax::cont::ArrayHandle<dax::Scalar> values;
+
+  dax::cont::Scheduler<> scheduler;
+
+  dax::cont::GenerateKeysValues<PointAverageGenerateKeys,CountArrayType>
+      generateKeys(counts);
+  scheduler.Invoke(generateKeys, grid, inputCellField, keys, values);
+
+  dax::cont::ArrayHandle<dax::Scalar> outputPointField;
+
+  dax::cont::ReduceKeysValues<PointAverageReduceKeys,dax::cont::ArrayHandle<dax::Scalar> >
+      reduceKeys(keys);
+  scheduler.Invoke(reduceKeys, values, outputPointField);
+
+  return outputPointField;
+}
+\end{daxexample}
+
+\index{reduce keys and values worklet|)}
+\index{worklet types!reduce keys and values|)}
+
+\index{worklet types|)}
+
+\subsubsection{Execution Objects}
+
+\index{execution object|(}
+
+In the previous discussion, there is one \controlsignature tag that is
+available in all types of worklets that has not been mentioned: the
+\sigtag{ExecObject} tag. The \sigtag{ExecObject} means that the
+corresponding parameter to the scheduler's invoke method will be an
+execution object. It is an object that is passed directly to every
+invocation of the worklet. Execution objects are helpful for implementing
+search structures and lookup tables. They also provide a mechanism for
+implementing features not yet available in the Dax toolkit.
+
+The execution object must be a subclass of \daxexec{ExecutionObjectBase},
+and the instance is passed to all invocations of the worklet. This means
+that the execution object must be possible to copy the object from the
+control environment to the execution environment. It also means that any
+method used in the worklet must be declared with
+\daxmacro{DAX\_EXEC\_EXPORT} or \daxmacro{DAX\_EXEC\_CONT\_EXPORT}.
+
+An execution object can refer to an array, but the array reference must be
+through an array portal for the execution environment. This can be
+retrieved from the \textcode{PrepareForInput} method in
+\daxcont{ArrayHandle}, as described in
+Section~\ref{sec:ArrayHandleInterfaceToExecutionEnvironment}.
+
+The following is a contrived example of the use of an execution
+object. Let's say we want to measure the quality of triangles in a mesh. A
+common method for doing this is using the equation
+\begin{equation*}
+  q = \frac{4a\sqrt{3}}{h_1^2 + h_2^2 + h_3^2}
+\end{equation*}
+where $a$ is the area of the triangle and $h_1$, $h_2$, and $h_3$ are the
+lengths of the sides. We can easily compute this in a cell map, but what if
+we want to speed up the computations by reducing precision? After all, we
+probably only care if the triangle is good, reasonable, or bad. So instead,
+let's embed a lookup table in an execution object that can quickly retrieve
+the triangle quality based on its sides.
+
+\begin{daxexample}{Creating and using an executive object that references arrays.}
+#include <dax/exec/ExecutionObjectBase.h>
+
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/ErrorControlBadValue.h>
+#include <dax/cont/Scheduler.h>
+#include <dax/cont/UniformGrid.h>
+#include <dax/cont/UnstructuredGrid.h>
+
+#include <dax/exec/WorkletMapCell.h>
+#include <dax/exec/WorkletMapField.h>
+
+#include <dax/math/Compare.h>
+#include <dax/math/Exp.h>
+#include <dax/math/VectorAnalysis.h>
+
+DAX_EXEC_EXPORT
+dax::Vector3 TriangleSideLengths(const dax::Vector3 &point1,
+                                 const dax::Vector3 &point2,
+                                 const dax::Vector3 &point3)
+{
+  return dax::make_Vector3(dax::math::Magnitude(point1-point2),
+                           dax::math::Magnitude(point2-point3),
+                           dax::math::Magnitude(point3-point1));
+}
+
+DAX_EXEC_EXPORT
+dax::Scalar TriangleQuality(const dax::Vector3 &sideLengths)
+{
+  // Heron's formulat for triangle area.
+  dax::Scalar semiparameter = (sideLengths[0]+sideLengths[1]+sideLengths[2])/2;
+  dax::Scalar area = dax::math::Sqrt(semiparameter*
+                                     (semiparameter - sideLengths[0])*
+                                     (semiparameter - sideLengths[0])*
+                                     (semiparameter - sideLengths[0]));
+
+  // Formula for triangle quality.
+  return 4*area*dax::math::Sqrt(3)/dax::math::MagnitudeSquared(sideLengths);
+}
+
+class BuildTriangleQualityArray : public dax::exec::WorkletMapField
+{
+public:
+  typedef void ControlSignature(Field, Field(Out));
+  typedef _2 ExecutionSignature(_1);
+
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(const dax::Vector3 &sideLengths)
+  {
+    return TriangleQuality(sideLengths);
+  }
+};
+
+template<typename ArrayHandleType>
+class TriangleQualityTableExecution : dax::exec::ExecutionObjectBase
+{
+  typedef typename ArrayHandleType::PortalConstExecution PortalType;
+
+  DAX_CONT_EXPORT
+  TriangleQualityTableExecution(ArrayHandleType array,
+                                dax::Id arrayDimensions,
+                                dax::Scalar spacing)
+    : Portal(array.PrepareForInput()), ArrayDimensions(arrayDimensions), Scale(1/spacing)
+  {
+    if (array.GetNumberOfValues() != arrayDimensions*arrayDimensions*arrayDimensions)
+      {
+      throw dax::cont::ErrorControlBadValue("Array size was not what was expected.");
+      }
+  }
+
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(const dax::Vector3 &point1,
+                         const dax::Vector3 &point2,
+                         const dax::Vector3 &point3)
+  {
+    dax::Vector3 lengths = TriangleSideLengths(point1, point2, point3);
+    dax::Vector3 indices = lengths*this->Scale;
+
+    dax::Id index = 0;
+    for (int i = 2; i >= 0; i--)
+      {
+      index *= this->ArrayDimensions;
+      dax::Id dimIndex = static_cast<dax::Id>(indices[i]);
+      index += dax::math::Min(dimIndex, this->ArrayDimensions-1);
+      }
+
+    return this->Portal.Get(index);
+  }
+
+private:
+  PortalType Portal;
+  dax::Id ArrayDimensions;
+  dax::Scalar Scale;
+};
+
+class TriangleQualityTableControl
+{
+  typedef dax::cont::ArrayHandle<dax::Scalar> ArrayHandleType;
+public:
+  typedef TriangleQualityTableExecution<ArrayHandleType> ExecutionObjectType;
+
+  DAX_CONT_EXPORT
+  TriangleQualityTableControl(dax::Id arrayDimensions, dax::Scalar maxLength)
+    : ArrayDimensions(arrayDimensions), Spacing(maxLength/(arrayDimensions-1))
+  {
+    this->BuildArray();
+  }
+
+  DAX_CONT_EXPORT
+  ExecutionObjectType GetExecutionObject() const
+  {
+    return ExecutionObjectType(this->Array, this->ArrayDimensions, this->Spacing);
+  }
+
+private:
+  ArrayHandleType Array;
+  dax::Id ArrayDimensions;
+  dax::Scalar Spacing;
+
+  DAX_CONT_EXPORT
+  void BuildArray()
+  {
+    // For convenience, create a uniform grid with point coordinates that match the side
+    // lengths we want to compute a table for.
+    dax::cont::UniformGrid<> grid;
+    grid.SetExtent(dax::make_Id3(0, 0, 0), dax::make_Id3(this->ArrayDimensions-1,
+                                                         this->ArrayDimensions-1,
+                                                         this->ArrayDimensions-1));
+    grid.SetSpacing(dax::make_Vector3(this->Spacing,this->Spacing,this->Spacing));
+    grid.SetOrigin(dax::make_Vector3(0,0,0));
+
+    dax::cont::Scheduler<> scheduler;
+    scheduler.Invoke(BuildTriangleQualityArray(), grid.GetPointCoordinates(), this->Array);
+  }
+};
+
+class TriangleQualityWorklet : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Point), ExecObject, Field(Out));
+  typedef _4 ExecutionSignature(_2, _3);
+
+  template<typename TriangleQualityTableType>
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(
+      dax::exec::CellField<dax::Vector3,dax::CellTagTriangle> &pointCoords,
+      const TriangleQualityTableType &triangleQuality)
+  {
+    return triangleQuality(pointCoords[0], pointCoords[1], pointCoords[2]);
+  }
+};
+
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar>
+ComputeTriangleQuality(dax::cont::UnstructuredGrid<dax::CellTagTriangle> grid,
+                       TriangleQualityTableControl triangleQualityLookup)
+{
+  dax::cont::ArrayHandle<dax::Scalar> quality;
+
+  dax::cont::Scheduler<> scheduler;
+  scheduler.Invoke(TriangleQualityWorklet(),
+                   grid,
+                   grid.GetPointCoordinates(),
+                   triangleQualityLookup.GetExecutionObject(),
+                   quality);
+
+  return quality;
+}
+\end{daxexample}
+
+\index{execution object|)}
+
+\index{worklet|)}
 
 \subsection{Error Handling}
 \label{sec:ErrorHandlingExecution}

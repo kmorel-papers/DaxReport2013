@@ -4734,7 +4734,50 @@ control environment. Thus, calling \textcode{RaiseError} looks like an
 exception was thrown from the perspective of the control environment code
 that invoked it.
 
-\fix{Example of raising errors in a worklet.}
+\begin{daxexample}{Raising an error in the execution environment.}
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/ErrorExecution.h>
+#include <dax/cont/Scheduler.h>
+
+#include <dax/exec/WorkletMapField.h>
+
+#include <dax/math/Exp.h>
+
+class SquareRoot : public dax::exec::WorkletMapField
+{
+public:
+  typedef void ControlSignature(Field, Field(Out));
+  typedef _2 ExecutionSignature(_1);
+
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(dax::Scalar x) const
+  {
+    if (x < 0)
+      {
+      this->RaiseError("Cannot take the square root of a negative number.");
+      }
+    return dax::math::Sqrt(x);
+  }
+};
+
+DAX_CONT_EXPORT
+dax::cont::ArrayHandle<dax::Scalar>
+InvokeSquareRoot(dax::cont::ArrayHandle<dax::Scalar> input)
+{
+  dax::cont::ArrayHandle<dax::Scalar> outut;
+
+  dax::cont::Scheduler<> scheduler;
+  try
+    {
+    scheduler.Invoke(SquareRoot(), input, output);
+    }
+  catch (dax::cont::ErrorExecution error)
+  {
+    std::cout << "An error occured when taking square root: "
+              << error.GetMessage() << std::endl;
+  }
+}
+\end{daxexample}
 
 Be aware that there are limitations to the execution environment's error
 handling mechanism because the exception throwing is deferred until after

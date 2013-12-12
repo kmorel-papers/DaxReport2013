@@ -4805,7 +4805,121 @@ as calling \textcode{RaiseError} on a worklet.
 
 \index{math|(}
 
-\fix{Portable math functions}
+The Dax toolkit comes with several basic math functions. Some of these
+functions replicate the behavior of the basic POSIX math functions. These
+functions can vary subtly on different accelerators, and these functions
+provide cross platform support. Other functions provide convenient
+implementations of other common math operations that are likely to be
+helpful in visualization algorithms.
+
+All math functions are located in the \daxmath{} package. The functions are
+most useful in the execution environment, but they can also be used in the
+control environment when needed.
+
+The math functions are grouped into several different header files based on
+the type of operation they perform. The following subsections document each
+of the groups, the header file that defines them, and the contents of each
+one.
+
+\fix{Add the actual functions.}
+
+\subsubsection{Comparisons}
+
+The comparison functions are located in
+\daxheader{dax/math}{Compare.h}. They help provide ordering of numbers,
+vectors, and other elements. The following functions are provided.
+
+%\begin{description}
+%\end{description}
+
+In addition, \daxheader{dax/math}{Compare.h} provides the pair of templated
+functors \daxmath{SortLess} and \daxmath{SortGreater} functors. Both
+functors provide an operation that takes two values of the given type and
+returns a boolean. When templated on a scalar type,
+\textidentifier{SortLess} and \textidentifier{SortGreater} return whether
+the first value is less than or greater than, respectively, the second
+value. For types that behave like vectors, these two functors provide a
+total ordering by comparing the first component, then the second if the
+first are equal, then the third if the first two are equal, and so
+on. \textidentifier{SortLess} and \textidentifier{SortGreater} are useful
+for providing comparison operators to algorithms like \textcode{Sort}.
+
+\subsubsection{Exponents}
+
+Functions that perform various type of exponential functions are located in
+\daxheader{dax/math}{Exp.h}. The following functions are provided.
+
+\subsubsection{Matrices}
+
+Linear algebra operations on small matrices that are done on a single
+thread are located in \daxheader{dax/math}{Matrix.h}.
+
+This header defines the \daxmath{Matrix} templated class. The template
+parameters are first the type of component, then the number of rows, then
+the number of columns. The overloaded parentheses operator can be used to
+retrieve values based on row and column indices. Likewise, the bracket
+operators can be used to reference the \textidentifier{Matrix} as a 2D
+array (indexed by row first). The following example builds a
+\textidentifier{Matrix} that contains the values
+\begin{equation*}
+  \left|
+  \begin{array}{ccc}
+    0 & 1 & 2 \\
+    10 & 11 & 12
+  \end{array}
+  \right|
+\end{equation*}
+
+\begin{daxexample}{Creating a \textidentifier{Matrix}.}
+dax::math::Matrix<dax::Scalar, 2, 3> matrix;
+// Using parenthesis notation.
+matrix(0, 0) = 0;
+matrix(0, 1) = 1;
+matrix(0, 2) = 2;
+// Using bracket notation.
+matrix[1][0] = 10;
+matrix[1][1] = 11;
+matrix[1][2] = 12;
+\end{daxexample}
+
+There are also three convenience classes for common matrices. These are
+\daxmath{Matrix2x2}, \daxmath{Matrix3x3}, and \daxmath{Matrix4x4}. These
+are all equivalent to a \textidentifier{Matrix} with a component type of
+\dax{Scalar} and of the respective size.
+
+The \daxheader{dax/math}{Matrix.h} header also defines the following
+functions that operate on matrices.
+
+\subsubsection{Numerical Methods}
+
+Numerical methods are located in \daxheader{dax/math}{Numerical.h}. They
+contain small single threaded algorithms of the type you would see in the
+numerical recipes books by Press \etal\scite{Press2002}. The functions
+currently available are as follows.
+
+\subsubsection{Precision and Non-Finites}
+
+Functions that deal with the precision of numbers and the handling of
+non-finite numbers (such as not-a-number and infinity) are located in
+\daxheader{dax/math}{Precision.h}. The following functions are available.
+
+\subsubsection{Positive or Negative Numbers}
+
+The \daxheader{dax/math}{Sign.h} header contains functions that deal with
+the sign (possitive or negative) of numbers. It defines the following
+functions.
+
+\subsubsection{Trigonometry}
+
+The \daxheader{dax/math}{Trig.h} header contains the standard trigonometric
+functions.
+
+\subsubsection{Vector Analysis}
+
+Visualization and computational geometry algorithms often perform vector
+analysis operations. The \daxheader{dax/math}{VectorAnalysis.h} header file
+provides functions that perform the basic common vector analysis
+operations.
 
 \index{math|)}
 

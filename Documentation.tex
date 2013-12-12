@@ -4711,7 +4711,49 @@ ComputeTriangleQuality(dax::cont::UnstructuredGrid<dax::CellTagTriangle> grid,
 
 \index{errors|(}
 
-\fix{Raising errors in the execution environment.}
+It is sometimes the case during the execution of an algorithm that an error
+condition can occur that causes the computation to become invalid. At such
+a time, it is important to raise an error to alert the calling code of the
+problem. Since Dax uses an exception mechanism to raise errors, we want an
+error in the execution environment to throw an exception.
+
+However, throwing exceptions in a parallel algorithm is problematic. Some
+accelerator architectures, like CUDA, do not even support throwing
+exceptions. Even on architectures that do support exceptions, throwing them
+in a thread block can cause problems. An exception raised in one thread may
+or may not be thrown in another, which increases the potential for
+deadlocks, and it is unclear how uncaught exceptions progress through
+thread blocks.
+
+The Dax toolkit handles this problem by using a flag and check
+mechanism. When a worklet encounters an error, it can call its
+\textcode{RaiseError} method to flag the problem and record a message for
+the error. Once all the threads terminate, the scheduler checks for the
+error and if one exists throws a \daxcont{ErrorExecution} exception in the
+control environment. Thus, calling \textcode{RaiseError} looks like an
+exception was thrown from the perspective of the control environment code
+that invoked it.
+
+\fix{Example of raising errors in a worklet.}
+
+Be aware that there are limitations to the execution environment's error
+handling mechanism because the exception throwing is deferred until after
+the threads complete. First, it is not possible to catch and handle errors
+within the worklet, so once an error is raised it is inevitable that the
+overall worklet operation will fail. Second, calling \textcode{RaiseError}
+does not actually halt any execution. Thus, the error handling will not
+prevent an invalid block of code from executing. The error flag may or may
+not terminate execution early, so raising an error should not be counted on
+to shorten the time of execution.
+
+It is also possible to raise errors within functors launched with the
+\textcode{Schedule} method in the device adapter algorithms (described in
+Section~\ref{sec:DeviceAdapterAlgorithms}). The functor for
+\textcode{Schedule} must have a method named
+\textcode{SetErrorMessageBuffer} that accepts an argument of type
+\daxexecinternal{ErrorMessageBuffer}. Calling the \textcode{RaiseError} on
+the \textidentifier{ErrorMessageBuffer} will raise an error in the same way
+as calling \textcode{RaiseError} on a worklet.
 
 \index{errors|)}
 

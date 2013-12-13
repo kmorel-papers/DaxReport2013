@@ -4736,7 +4736,7 @@ control environment. Thus, calling \textcode{RaiseError} looks like an
 exception was thrown from the perspective of the control environment code
 that invoked it.
 
-\begin{daxexample}{Raising an error in the execution environment.}
+\begin{daxexample}[ex:ExecutionErrors]{Raising an error in the execution environment.}
 #include <dax/cont/ArrayHandle.h>
 #include <dax/cont/ErrorExecution.h>
 #include <dax/cont/Scheduler.h>
@@ -4780,6 +4780,19 @@ InvokeSquareRoot(dax::cont::ArrayHandle<dax::Scalar> input)
   }
 }
 \end{daxexample}
+
+As a convenience, the \daxheader{dax/exec}{Assert.h} header file contains a
+macro named \daxmacro{DAX\_ASSERT\_EXEC}. It behaves essentially like the
+POSIX C assert macro except that it takes two arguments, the second being a
+worklet to call \textcode{RaiseError} with. Thus, the conditional in the
+worklet of Example~\ref{ex:ExecutionErrors} could be replaced with
+\begin{quote}
+  \daxmacro{DAX\_ASSERT\_EXEC}\textcode{(0 <= x, *this);}
+\end{quote}
+to get relatively the same error checking. However, the error message is
+going to be less useful to end users and a release build might remove the
+assert check, so this method should only be used if the errant condition is
+really unexpected.
 
 Be aware that there are limitations to the execution environment's error
 handling mechanism because the exception throwing is deferred until after
@@ -5487,8 +5500,7 @@ public:
   dax::Vector3 operator()(const dax::exec::CellField<dax::Vector3,CellTag> &coords,
                           const dax::exec::CellField<dax::Scalar,CellTag> &pointField) const
   {
-    dax::Vector3 parametricCellCenter =
-        dax::exec::ParametricCoordinates<CellTag>::Center();
+    dax::Vector3 parametricCellCenter = dax::exec::ParametricCoordinates<CellTag>::Center();
     return dax::exec::CellDerivative(parametricCellCenter, coords, pointField, CellTag());
   }
 };

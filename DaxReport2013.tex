@@ -27,6 +27,7 @@
 \usepackage{varioref}
 \usepackage{fancyvrb}
 \usepackage{ifthen}
+\usepackage{longtable}
 \usepackage{cite}
 \usepackage{subfig}
 \usepackage{xspace}
@@ -120,6 +121,10 @@
                    CellTagHexahedron, CellTagLine, CellTagQuadrilateral,
                    CellTagTetrahedron, CellTagTriangle, CellTagVectex,
                    CellTagVoxel, CellTagWedge,
+                   CellTraits,
+                   CellTopologicalDimensionsTag,
+                   GridTagUniform, GridTagUnstructured,
+                   NUM_VERTICES, TOPOLOGICAL_DIMENSIONS,
                    ParametricCoordinates, CellDerivative,
                    SortLess, SortGreater,
                    Max, Min,
@@ -138,7 +143,10 @@
                    ACos, ACosH, ASin, ASinH, ATan, ATan2, ATanH, Cos, CosH,
                    Pi, Sin, SinH, Tan, TanH,
                    Cross, Magnitude, MagnitudeSquared, Lerp, Normal,
-                   Normalize, RMagnitude, TriangleNormal
+                   Normalize, RMagnitude, TriangleNormal,
+                   ParametricCoordinatesToWorldCoordinates,
+                   WorldCoordinatesToParametricCoordinates,
+                   ParametricCoordinates,
                    },
   morekeywords={[3]DAX_CONT_EXPORT,DAX_EXEC_EXPORT,DAX_EXEC_CONT_EXPORT,
                    DAX_EXEC_CONSTANT_EXPORT,

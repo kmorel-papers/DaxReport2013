@@ -3606,6 +3606,7 @@ demonstrates all of the required components of a worklet.
 \end{figure}
 
 \subsubsection{Control Signature}
+\label{sec:ControlSignature}
 
 \index{control~signature|(}
 \index{signature!control|(}
@@ -3637,6 +3638,7 @@ the following section on worklet types.
 \index{control~signature|)}
 
 \subsubsection{Execution Signature}
+\label{sec:ExecutionSignature}
 
 \index{execution~signature|(}
 \index{signature!execution|(}
@@ -5196,7 +5198,7 @@ operations.
   \textidentifier{MagnitudeSquared}. This function works on scalars as well
   as vectors, in which case it just returns the reciprocal of the scalar.
 \item[\daxmath{TriangleNormal}] Given three points in space (contained in
-  \dax{Vector3}s) that comprise a triangle return a vector that is
+  \dax{Vector3}s) that compose a triangle return a vector that is
   perpendicular to the triangle. The magnitude of the result is equal to
   twice the area of the triangle. The result points away from the ``front''
   of the triangle as defined by the standard counter-clockwise ordering of
@@ -5208,10 +5210,295 @@ operations.
 \subsection{Cells and Operations}
 \label{sec:CellsAndOperations}
 
-\fix{-tags} \\
-\fix{-dax::exec::CellVertices} \\
-\fix{-dax::exec::CellField} \\
-\fix{-cell operations}
+\index{cell|(}
+
+In the control environment, data is defined in grid structures that
+comprise a set of finite cells. When worklets that operate on cells are
+scheduled, these grid structures are broken into their independent cells
+and that data is handed to the worklet.
+
+Unlike some other libraries such as VTK, the Dax toolkit does not have a
+cell class that holds all the information pertaining to a cell of a
+particular type. Instead, the Dax toolkit provides tags defining the cell
+type, independent tuples of information containing topological, geometric,
+and field information, and a collection of functions that perform typical
+operations. This structure is designed so that a worklet may specify
+exactly what information it needs, and only that information will be
+loaded.
+
+\subsubsection{Tags}
+\label{sec:CellTags}
+
+Tags for cells, like all other tags in the Dax toolkit, are empty
+structures that are used as parameters so that templates may be specialized
+or functions overloaded based on a cell type. The type of the cell (and by
+implication the cell tag) is derived from the type of grid structure passed
+to a \sigtag{Topology} parameter.
+
+The following table lists all of the cells defined by the Dax toolkit along
+with the structure and node ordering of each.
+
+\begin{longtable}{lc}
+  \dax{CellTagHexahedron} \index{hexahedron}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Hexahedron}\end{minipage}} \\
+  \dax{CellTagLine} \index{line}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Line}\end{minipage}} \\
+  \dax{CellTagQuadrilateral} \index{quadrilateral}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Quadrilateral}\end{minipage}} \\
+  \dax{CellTagTetrahedron} \index{tetrahedron}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Tetrahedron}\end{minipage}} \\
+  \dax{CellTagTriangle} \index{triangle}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Triangle}\end{minipage}} \\
+  \dax{CellTagVertex} \index{vertex}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Vertex}\end{minipage}} \\
+  \dax{CellTagVoxel} \index{voxel}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Voxel}\end{minipage}} \\
+  \dax{CellTagWedge} \index{wedge}
+  & \fbox{\begin{minipage}[c][2in]{2in}\fix{Wedge}\end{minipage}} \\
+\end{longtable}
+
+\subsubsection{Traits}
+\label{sec:CellTraits}
+
+The Dax toolkit has a \dax{CellTraits} templated class that provides
+general information about each of the cell
+types. \textidentifier{CellTraits} can be used in either the control or
+execution environment, but are more commonly used in the execution
+environment.
+
+Like other traits classes, \textidentifier{CellTraits} contains static
+information that can be used to specialize templates or overload functions
+based on general traits. A \textidentifier{CellTraits} class contains the
+following items for all known cell tags.
+
+\begin{description}
+\item[\textidentifier{NUM\_VERTICES}] \index{NUM\_VERTICES} A static
+  constant number set to the number of vertices in the cell.
+\item[\textidentifier{TOPOLOGICAL\_DIMENSIONS}]
+  \index{TOPOLOGICAL\_DIMENSIONS} A static constant number set to the
+  topological dimensions of the cell type. It is 3 for polyhedra, 2 for
+  polygons, 1 for lines, and 0 for points.
+\item[\textcode{TopologicalDimensionsTag}] \index{TopologicalDimensionsTag}
+  Always \textcode{typedef}ed to
+  \dax{CellTopologicalDimensionsTag}\textcode{<}\textidentifier{TOPOLOGICAL\_DIMENSIONS}\textcode{>}.
+  This tag provides a convenient way to overload a function based on
+  topological dimensions (which is often more efficient than conditionals).
+\item[\textcode{GridTag}] \index{GridTag} A \textcode{typedef} to a tag
+  specifying the type of grid that holds this type of cell. Can be set to
+  \dax{GridTagUniform} or \dax{GridTagUnstructured}. These correspond to
+  the control environment structures described in
+  Section~\ref{sec:GridStructures}.
+\item[\textcode{CanonicalCellTag}] \index{CanonicalCellTag} A
+  \textcode{typedef} to a tag for a cell type that can be held in an
+  unstructured grid that has an equivalent topology as this cell. For
+  example,
+  \dax{CellTraits}\textcode{<}\dax{CellTagVoxel}\textcode{>::CanonicalCellTag}
+  is \textcode{typedef}ed to \dax{CellTagHexahedron}. This trait is useful
+  for specializing templates and functions that operate on all cell types
+  with equivalent topology. For example, it can be used to create a
+  function that operates on cells from an unstructured grid of hexahedra or
+  a uniform grid.
+\end{description}
+
+\subsubsection{Vertex and Field Information}
+
+\index{vertex|(}
+\index{field|(}
+
+When a worklet scheduled on cells is operating on a point field (generally
+identified with a \sigtagmod{Field}{Point} tag in the \controlsignature as
+described in Section~\ref{sec:ControlSignature}), then the Dax scheduler
+pulls all the relevent field values and passes them to the worklet in a
+\daxexec{CellField} object. \textidentifier{CellField} is templated first
+on the field data type and second on the cell tag. The
+\textidentifier{CellField} class has a
+\textidentifier{NUM\_VERTICES}\index{NUM\_VERTICES} constant set to the
+number of field values in the cell. The \textidentifier{CellField} also has
+its bracket operator overloaded to access each field
+value. \textidentifier{CellField} also has the methods
+\textcode{GetAsTuple} and \textcode{SetFromTuple} to convert to and from a
+\dax{Tuple} structure.
+
+It is also possible to get the point indices for each vertex of the
+cell. This is done by using the \sigtag{Vertices} tag in the
+\executionsignature as described in
+Section~\ref{sec:ExecutionSignature}. In this case, the point indices are
+placed in a \daxexec{CellVertices} object. A \textidentifier{CellVertices}
+object behaves the same as a \textidentifier{CellField} with the field
+value type set as \dax{Id}.
+
+The following artificial example uses \daxexec{CellField} and
+\daxexec{CellVertices} to make a worklet that finds for each cell the
+incident point that has the maximum field value.
+
+\begin{daxexample}{Using \textidentifier{CellField} and \textidentifier{CellVertices}.}
+#include <dax/exec/CellField.h>
+#include <dax/exec/CellVertices.h>
+#include <dax/exec/WorkletMapCell.h>
+
+class FindMaxPointIds : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Point), Field(Out));
+  typedef _3 ExecutionSignature(Vertices(_1), _2);
+
+  template<typename CellType, typename FieldType>
+  DAX_EXEC_EXPORT
+  dax::Id operator()(const dax::exec::CellVertices<CellType> &vertices,
+                     const dax::exec::CellField<FieldType,CellType> &fieldValues) const
+  {
+    int maxVertexIndex = 0;
+    FieldType maxFieldValue = fieldValues[0];
+    for (int vertexIndex = 1; vertexIndex < fieldValues.NUM_VERTICES; vertexIndex++)
+      {
+      FieldType fieldValue = fieldValues[vertexIndex];
+      if (!(fieldValue < maxFieldValue))
+        {
+        maxVertexIndex = vertexIndex;
+        maxFieldValue = fieldValue;
+        }
+      }
+    return vertices[maxVertexIndex];
+  }
+};
+\end{daxexample}
+
+\index{field|)}
+\index{vertex|)}
+
+\subsubsection{Operations}
+\label{sec:CellOperations}
+
+The Dax execution environment API comes with several functions and classes
+that perform operations on cells. These facilities are templated on cell
+tags and opearte on \textidentifier{CellField} containers.
+
+\paragraph{Parametric Coordinates}
+\label{sec:ParametricCoordinates}
+
+\index{parametric coordinates|(}
+\index{world coordinates|(}
+\index{cell!parametric coordinates|(}
+
+Each cell type supports a one-to-one mapping between a set of parametric
+coordinates in the unit cube (or some subset of it) and the points in 3D
+space that are the locus contained in the cell. Parametric coordinates are
+useful because certain features of the cell such as vertex location and
+center, are at a consistent location in parametric space irrespective of
+the location and distortion of the cell in world space. Also, many field
+operations are much easier with parametric coordinates.
+
+The \daxheader{dax/exec}{ParametricCoordinates.h} header file contains the
+following functions for working with parametric coordinates.
+
+\begin{description}
+\item[\daxcont{ParametricCoordinatesToWorldCoordinates}] Given a
+  \textidentifier{CellField} of point coordinates and a \dax{Vector3}
+  containing parametric coordinates, returns the world coordinates.
+\item[\daxcont{WorldCoordinatesToParametricCoordinates}] Given a
+  \textidentifier{CellField} of point coordinates and a \dax{Vector3}
+  containing world coordinates, returns the parametric coordinates. This
+  function can be slow for cell types with nonlinear interpolation (which
+  is anything that is not a simplex).
+\end{description}
+
+The \daxheader{dax/exec}{ParametricCoordinates.h} header additionally
+provides a templated class named \daxexec{ParametricCoordinates}. The
+single template argument is a cell tag. This class holds static methods
+that return parametric coordinates for special locations. The
+\textidentifier{ParametricCoordinates} class contains the following static
+functions.
+
+\begin{description}
+\item[\textcode{Center}] Returns a \dax{Vector3} containing the parametric
+  coordinates for the center of a cell.
+\item[\textcode{Vertex}] Returns a \daxexec{CellField} of \dax{Vector3}s
+  containing the parametric coordinates for each vertex of a cell.
+\end{description}
+
+\index{cell!parametric coordinates|)}
+\index{world coordinates|)}
+\index{parametric coordinates|)}
+
+\paragraph{Interpolations}
+
+\index{cell!interpolation|(}
+\index{interpolation|(}
+
+The shape of every cell is defined by the connections of some finite set of
+vertices. Field values defined on those vertices can be interpolated to any
+point within the cell to estimate a continuous field.
+
+The \daxheader{dax/exec}{Interpolate.h} header contains the function
+\daxexec{CellInterpolate} that takes a \daxexec{CellField} of field values
+and a \dax{Vector3} contining parametric coordinates. It returns the
+interpolated value of the field. The \daxworklet{PointDataToCellData}
+worklet provides a simple example of interpolating fields.
+
+\begin{daxexample}{Interpolating a field to the center of a cell.}
+class PointDataToCellData : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology,Field(Point), Field(Out));
+  typedef _3 ExecutionSignature(_2);
+
+  template<class CellTag>
+  DAX_EXEC_EXPORT
+  dax::Scalar operator()(const dax::exec::CellField<dax::Scalar,CellTag> &pointField) const
+  {
+    dax::Vector3 center =  dax::exec::ParametricCoordinates<CellTag>::Center();
+    return dax::exec::CellInterpolate(pointField,center,CellTag());
+  }
+};
+\end{daxexample}
+
+\index{interpolation|)}
+\index{cell!interpolation|)}
+
+\paragraph{Derivatives}
+
+\index{cell!derivative|(}
+\index{derivative|(}
+\index{gradient|(}
+
+Since interpolations provide a continuous field function over a cell, it is
+reasonable to consider the derivative of this function. The
+\daxheader{dax/exec/Derivative.h} header file provides the overloaded
+function \daxexec{CellDerivative} that computes the partial derivative of a
+field with respect to each axis in 3D space (also known as the
+\keyterm{gradient}). \textidentifier{CellDerivative} takes 4 arguments: a
+\dax{Vector3} containing parametric coordinates of where the gradient
+should be found, a \daxexec{CellField} of \dax{Vector3} containing the
+point coordinates at each vertex, a \daxexec{CellField} containing the
+field values at each vertex, and the tag of the cell type.
+
+The \daxworklet{CellGradient} worklet provides a simple example of finding
+field derivatives.
+
+\begin{daxexample}{Finding derivatives of a field at the center of a cell.}
+class CellGradient : public dax::exec::WorkletMapCell
+{
+public:
+  typedef void ControlSignature(Topology, Field(Point), Field(Point), Field(Out));
+  typedef _4 ExecutionSignature(_2,_3);
+
+  template<class CellTag>
+  DAX_EXEC_EXPORT
+  dax::Vector3 operator()(const dax::exec::CellField<dax::Vector3,CellTag> &coords,
+                          const dax::exec::CellField<dax::Scalar,CellTag> &pointField) const
+  {
+    dax::Vector3 parametricCellCenter =
+        dax::exec::ParametricCoordinates<CellTag>::Center();
+    return dax::exec::CellDerivative(parametricCellCenter, coords, pointField, CellTag());
+  }
+};
+\end{daxexample}
+
+\index{gradient|)}
+\index{derivative|)}
+\index{cell!derivative|)}
+
+\index{cell|)}
 
 \index{execution~environment|)}
 

@@ -4821,16 +4821,20 @@ the type of operation they perform. The following subsections document each
 of the groups, the header file that defines them, and the contents of each
 one.
 
-\fix{Add the actual functions.}
-
 \subsubsection{Comparisons}
 
 The comparison functions are located in
 \daxheader{dax/math}{Compare.h}. They help provide ordering of numbers,
 vectors, and other elements. The following functions are provided.
 
-%\begin{description}
-%\end{description}
+\begin{description}
+\item[\daxmath{Max}] \index{maximum} Takes two arguments and returns the
+  argument that is greater. If called with a vector type, returns a
+  component-wise maximum.
+\item[\daxmath{Min}] \index{minimum} Takes two arguments and returns the
+  argument that is lesser. If called with a vector type, returns a
+  component-wise minimum.
+\end{description}
 
 In addition, \daxheader{dax/math}{Compare.h} provides the pair of templated
 functors \daxmath{SortLess} and \daxmath{SortGreater} functors. Both
@@ -4848,6 +4852,56 @@ for providing comparison operators to algorithms like \textcode{Sort}.
 
 Functions that perform various type of exponential functions are located in
 \daxheader{dax/math}{Exp.h}. The following functions are provided.
+
+\begin{description}
+\item[\daxmath{Cbrt}] \index{cube root} Takes one argument and returns the
+  cube root of that argument. If called with a vector type, returns a
+  component-wise cube root.
+\item[\daxmath{Exp}] \index{exponental} Computes $e^x$ where $x$ is the
+  argument to the function and $e$ is Euler's number (approximately
+  $2.71828$). If called with a vector type, returns a component-wise
+  exponent.
+\item[\daxmath{Exp10}] Computes $10^x$ where $x$ is the argument. If called
+  with a vector type, returns a component-wise exponent.
+\item[\daxmath{Exp2}] Computes $2^x$ where $x$ is the argument. If called
+  with a vector type, returns a component-wise exponent.
+\item[\daxmath{ExpM1}] Computes $e^x-1$ where $x$ is the argument to the
+  function and $e$ is Euler's number (approximately $2.71828$). The
+  accuracy of this function is good even for very small values of $x$. If
+  called with a vector type, returns a component-wise exponent.
+\item[\daxmath{Log}] \index{natural logarithm} \index{logarithm} Computes
+  the natural logarithm (i.e. logarithm to the base $e$) of the single
+  argument. If called with a vector type, returns a component-wise
+  logarithm.
+\item[\daxmath{Log10}] \index{logarithm} Computes the logarithm to the base
+  10 of the single argument. If called with a vector type, returns a
+  component-wise logarithm.
+\item[\daxmath{Log1P}] \index{natural logarithm} \index{logarithm} Computes
+  $\ln(1+x)$ where $x$ is the single argument and $\ln$ is the natural
+  logarithm (i.e. logarithm to the base $e$). The accuracy of this function
+  is good for very small values. If called with a vector type, returns a
+  component-wise logarithm.
+\item[\daxmath{Log2}] \index{logarithm} Computes the logarithm to the base
+  2 of the single argument. If called with a vector type, returns a
+  component-wise logarithm.
+\item[\daxmath{Pow}] \index{power} Takes two arguments and returns the
+  first argument raised to the power of the second argument. This function
+  is only defined for \dax{Scalar}.
+\item[\daxmath{RCbrt}] \index{reciprocal cube root} Takes one argument and
+  returns the cube root of that argument. The result of this function is
+  equivalent to \textcode{1/Cbrt(x)}. However, on some devices it is faster
+  to compute the reciprocal cube root than the regular cube root. Thus, you
+  should use this function whenever dividing by the cube root.
+\item[\daxmath{RSqrt}] \index{reciprocal square root} Takes one argument
+  and returns the square root of that argument. The result of this function
+  is equivalent to \textcode{1/Sqrt(x)}. However, on some devices it is
+  faster to compute the reciprocal square root than the regular square
+  root. Thus, you should use this function whenever dividing by the square
+  root.
+\item[\daxmath{Sqrt}] \index{square root} Takes one argument and returns
+  the square root of that argument. If called with a vector type, returns a
+  component-wise square root.
+\end{description}
 
 \subsubsection{Matrices}
 
@@ -4890,6 +4944,45 @@ are all equivalent to a \textidentifier{Matrix} with a component type of
 The \daxheader{dax/math}{Matrix.h} header also defines the following
 functions that operate on matrices.
 
+\begin{description}
+\item[\daxmath{MatrixColumn}] \index{column} Given a \textidentifier{Matrix}
+  and a column index, returns a \dax{Tuple} of that column. This function
+  might not be as efficient as \daxmath{MatrixRow}. (It performs a copy of
+  the column).
+\item[\daxmath{MatrixDeterminant}] \index{determinant} Takes a square
+  \textidentifier{Matrix} as its single argument and returns the
+  determinant of that matrix.
+\item[\daxmath{MatrixIdentity}] \index{identity matrix} Returns the
+  identity matrix. If given no arguments, it creates an identity matrix and
+  returns it. (In this form, the component type and size must be explicitly
+  set.) If given a single square matrix argument, fills that matrix with
+  the identity.
+\item[\daxmath{MatrixInverse}] \index{inverse matrix} Finds and returns the
+  inverse of a given matrix. The function takes two arguments. The first
+  argument is the matrix to invert. The second argument is a reference to a
+  boolean that is set to true if the inverse is found or false if the
+  matrix is singular and the returned matrix is incorrect.
+\item[\daxmath{MatrixMultiply}] Performs a matrix-multiply on its two
+  arguments. Overloaded to work for matrix-matrix, vector-matrix, or
+  matrix-vector multiply.
+\item[\daxmath{MatrixRow}] \index{row} Given a \textidentifier{Matrix} and a
+  row index, returns a \dax{Tuple} of that row.
+\item[\daxmath{MatrixSetColumn}] Given a \textidentifier{Matrix}, a column
+  index, and a \dax{Tuple}, sets the column of that index to the values of
+  the \textidentifier{Tuple}.
+\item[\daxmath{MatrixSetRow}] Given a \textidentifier{Matrix}, a row index,
+  and a \dax{Tuple}, sets the row of that index to the values of the
+  \textidentifier{Tuple}.
+\item[\daxmath{MatrixTranspose}] \index{transpose matrix} Takes a
+  \textidentifier{Matrix} and returns its transpose.
+\item[\daxmath{SolveLinearSystem}] \index{linear system} Solves the linear
+  system $\matrixsym{A}\vectorsym{x} = \vectorsym{b}$ and returns
+  $\vectorsym{x}$. The function takes three arguments. The first two
+  arguments are the matrix $\matrixsym{A}$ and the vector $\vectorsym{b}$,
+  respectively. The thrid argument is a reference to a boolean that is set
+  to true if a single solution is found, false otherwise.
+\end{description}
+
 \subsubsection{Numerical Methods}
 
 Numerical methods are located in \daxheader{dax/math}{Numerical.h}. They
@@ -4897,11 +4990,103 @@ contain small single threaded algorithms of the type you would see in the
 numerical recipes books by Press \etal\scite{Press2002}. The functions
 currently available are as follows.
 
+\begin{description}
+\item[\daxmath{NewtonsMethod}] Uses Newton's method (also known as the
+  Newton-Raphson method) to solve a nonlinear system of equations. This
+  function assumes that the number of variables equals the number of
+  equations. Newton's method operates on an iterative evaluate and
+  search. Evaluations are performed using the functors passed into the
+  \textidentifier{NewtonsMethod}. The function takes the following 6
+  parameters (three of which are optional).
+  \begin{enumerate}
+  \item A functor whose operation takes a \dax{Tuple} and returns the
+    math function's Jacobian vector at that point.
+  \item A functor whose operation takes a \dax{Tuple} and returns the
+    evaluation of the math function at that point as another \dax{Tuple}.
+  \item The \dax{Tuple} that represents the desired output of the function.
+  \item A \dax{Tuple} to use as the intial guess. If not specified, the
+    origin is used.
+  \item The convergence distance. If the iterative method changes all
+    values less than this amount, then it considers the solution found. If
+    not specified, set to $10^{-3}$.
+  \item The maximum amount of iterations to run before giving up and
+    returning the best solution. If not specified, set to $10$.
+  \end{enumerate}
+  Unlike other methods in \daxmath{}, \textidentifier{NewtonsMethod} is
+  declared with \daxmacro{DAX\_EXEC\_EXPORT}, meaning it only works in the
+  execution environment. This is so that the callbacks passed to
+  \textidentifier{NewtonsMethod} need to work only in the execution
+  environment.
+\end{description}
+
 \subsubsection{Precision and Non-Finites}
 
 Functions that deal with the precision of numbers and the handling of
 non-finite numbers (such as not-a-number and infinity) are located in
 \daxheader{dax/math}{Precision.h}. The following functions are available.
+
+\begin{description}
+\item[\daxmath{Ceil}] \index{ceiling} \index{round up|see{ceiling}} Rounds
+  and returns the smallest integer not less than the single argument. If
+  given a vector, performs a component-wise operation.
+\item[\daxmath{Epsilon}] Returns the difference between 1 and the least
+  value greater than 1 that is representable by a \dax{Scalar}. Epsilon is
+  useful for specifying the tolerance one should have when considering
+  numerical error.
+\item[\daxmath{Floor}] \index{floor} \index{round down|see{floor}} Rounds
+  and returns the largest integer not greater than the single argument. If
+  given a vector, performs a component-wise operation.
+\item[\daxmath{FMod}] \index{remainder} Computes the remainder on the
+  division of 2 floating point numbers. The return value is $numerator - n
+  \cdot denominator$, where $numerator$ is the first argument,
+  $denominator$ is the second argument, and $n$ is the quotient of
+  $numerator$ divided by $denominator$ rounded towards zero to an
+  integer. For example, \textidentifier{FMod}\textcode{(6.5,2.3)} returns
+  $1.9$, which is $6.5 - 2\cdot4.6$. If given vectors,
+  \textidentifier{FMod} performs a component-wise
+  operation. \textidentifier{FMod} is similar to \textidentifier{Remainder}
+  except that the quotient is rounded toward 0 instead of the nearest
+  integer.
+\item[\daxmath{Infinity}] Returns the \dax{Scalar} representation for
+  infinity. The result is greater than any other number except another
+  infinity or NaN. When comparing two infinities or infinity to NaN,
+  neither is greater than, less than, nor equal to the other.
+\item[\daxmath{IsFinite}] Returns true if the argument is a normal number
+  (neither a NaN nor an infinite).
+\item[\daxmath{IsInf}] Returns true if the argument is either positive
+  infinity or negative infinity.
+\item[\daxmath{IsNan}] Returns true if the argument is not a number (NaN).
+\item[\daxmath{ModF}] Returns the integral and fractional parts of the
+  first argument. The second argument is a reference in which the integral
+  part is stored. The return value is the fractional part. If given
+  vectors, \textidentifier{ModF} performs a component-wise operation.
+\item[\daxmath{Nan}] \index{not a number} Returns the \dax{Scalar}
+  representation for not-a-number (NaN). A NaN represents an invalid value
+  or the result of an invalid operation such as $0/0$. A NaN is neither
+  greater than nor less than nor equal to any other number including other
+  NaNs.
+\item[\daxmath{NegativeInfinity}] Returns the \dax{Scalar} representation
+  for negative infinity. The result is less than any other number except
+  another negative infinity or NaN. When comparing two negative infinities
+  or negative infinity to NaN, neither is greater than, less than, nor
+  equal to the other.
+\item[\daxmath{Remainder}] \index{remainder} Computes the remainder on the
+  division of 2 floating point numbers. The return value is $numerator - n
+  \cdot denominator$, where $numerator$ is the first argument,
+  $denominator$ is the second argument, and $n$ is the quotient of
+  $numerator$ divided by $denominator$ rounded towards the nearest
+  integer. For example, \textidentifier{FMod}\textcode{(6.5,2.3)} returns
+  $-0.4$, which is $6.5 - 3\cdot2.3$. If given vectors,
+  \textidentifier{Remainder} performs a component-wise
+  operation. \textidentifier{Remainder} is similar to \textidentifier{FMod}
+  except that the quotient is rounded toward the nearest integer instead of
+  toward 0.
+\item[\daxmath{RemainderQuotient}] Performs an operation identical to
+  \textidentifier{Reminder}. In addition, this function takes a third
+  argument that is a reference in which the quotient is given.
+\item[\daxmath{Round}] Rounds and returns the integer nearest the single
+  argument. If given a vector, performs a component-wise operation.
+\end{description}
 
 \subsubsection{Positive or Negative Numbers}
 
@@ -4909,10 +5094,63 @@ The \daxheader{dax/math}{Sign.h} header contains functions that deal with
 the sign (possitive or negative) of numbers. It defines the following
 functions.
 
+\begin{description}
+\item[\daxmath{Abs}] \index{absolute value} Returns the absolute value of
+  the single argument. If given a vector, performs a component-wise
+  operation.
+\item[\daxmath{CopySign}] Copies the sign of the second argument onto the
+  first argument and returns that. If the second argument is positive,
+  returns the absolute value of the first argument. If the second argument
+  is negative, returns the negative absolute value of the first argument.
+\item[\daxmath{IsNegative}] \index{negative} Returns true if the single
+  argument is less than zero, false otherwise.
+\item[\daxmath{SignBit}] Returns a nonzero value if the single argument is
+  negative.
+\end{description}
+
 \subsubsection{Trigonometry}
 
 The \daxheader{dax/math}{Trig.h} header contains the standard trigonometric
 functions.
+
+\begin{description}
+\item[\daxmath{ACos}] \index{arccosine} \index{inverse cosine} Returns the
+  arccosine of a ratio in radians. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{ACosH}] \index{hyperbolic arccossine} \index{inverse hyperbolic cosine}
+  Returns the hyperbolic arccossine. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{ASin}] \index{arcsine} \index{inverse sine} Returns the
+  arcsine of a ratio in radians. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{ASinH}] \index{hyperbolic arcsine} \index{inverse hyperbolic sine}
+  Returns the hyperbolic arcsine. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{ATan}] \index{arctangent} \index{inverse tanget} Returns the
+  arctanget of a ratio in radians. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{ATan2}] Computes the arctangent of $y/x$ where $y$ is the
+  first argument and $x$ is the second argument. \textidentifier{ATan2}
+  uses the signs of both arguments to determine the quadrant of the return
+  value. \textidentifier{ATan2} is only defined for \dax{Scalar}.
+\item[\daxmath{ATanH}] \index{hyperbolic tangent} \index{inverse hyperbolic tangent}
+  Returns the hyperbolic arctangent. If given a vector, performs a
+  component-wise operation.
+\item[\daxmath{Cos}] \index{cosine} Returns the cosine of an angle given in
+  radians. If given a vector, performs a component-wise operation.
+\item[\daxmath{CosH}] \index{hyperbolic cosine} Returns the hyperbolic
+  cosine. If given a vector, performs a component-wise operation.
+\item[\daxmath{Pi}] \index{$\pi$} Returns the constant $\pi$ (about
+  $3.14159$).
+\item[\daxmath{Sin}] \index{sine} Returns the sine of an angle given in
+  radians. If given a vector, performs a component-wise operation.
+\item[\daxmath{SinH}] \index{hyperbolic sine} Returns the hyperbolic
+  sine. If given a vector, performs a component-wise operation.
+\item[\daxmath{Tan}] \index{tangent} Returns the tanget of an angle given
+  in radians. If given a vector, performs a component-wise operation.
+\item[\daxmath{TanH}] \index{hyperbolic tangent} Returns the hyperbolic
+  tangent. If given a vector, performs a component-wise operation.
+\end{description}
 
 \subsubsection{Vector Analysis}
 
@@ -4920,6 +5158,50 @@ Visualization and computational geometry algorithms often perform vector
 analysis operations. The \daxheader{dax/math}{VectorAnalysis.h} header file
 provides functions that perform the basic common vector analysis
 operations.
+
+\begin{description}
+\item[\daxmath{Cross}] \index{cross product} Returns the cross product of
+  two \dax{Vector3}.
+\item[\daxmath{Magnitude}] Returns the magnitude of a vector. This function
+  works on scalars as well as vectors, in which case it just returns the
+  scalar. It is usually much faster to compute
+  \textidentifier{MagnitudeSquared}, so that should be substituted when
+  possible (unless you are just going to take the square root, which would
+  be besides the point). On some hardware it is also faster to find the
+  reciprocal magnitude, so \textidentifier{RMagnitude} should be used if
+  you actually plan to divide by the magnitude.
+\item[\daxmath{MagnitudeSquared}] Returns the square of the magnitude of a
+  vector. It is usually much faster to compute the square of the magnitude
+  than the dquare, so you should use this function in place of
+  \textidentifier{Magnitude} or \textidentifier{RMagnitude} when needing
+  the square of the magnitude or any monotonically increasing function of a
+  magnitude or distance. This function works on scalars as well as vectors,
+  in which case it just returns the square of the scalar.
+\item[\daxmath{Lerp}] \index{linear interpolation} Given two values $x$ and
+  $y$ in the first two parameters and a \dax{Scalar} weight $w$ as the
+  third parameter, interpolates between $x$ and $y$. Specifically, the
+  linear interpolation is $(y-x)w + x$ although \textidentifier{Lerp} might
+  compute the interpolation faster than using the independent arithmetic
+  operations. The two values may be scalars or equal sized vectors.
+\item[\daxmath{Normal}] Returns a normalized version of the given
+  vector. The resulting vector points in the same direction as the argument
+  but has unit length.
+\item[\daxmath{Normalize}] Takes a reference to a vector and modifies it to
+  be of unit length. \textidentifier{Normalize}\textcode{(v)} is
+  functionally equivalent to
+  \textcode{v *= }\textidentifier{RMagnitude}\textcode{(v)}.
+\item[\daxmath{RMagnitude}] Returns the reciprocal magnitude of a
+  vector. On some hardware \textidentifier{RMagnitude} is faster than
+  \textidentifier{Magnitude}, but neither is as fast as
+  \textidentifier{MagnitudeSquared}. This function works on scalars as well
+  as vectors, in which case it just returns the reciprocal of the scalar.
+\item[\daxmath{TriangleNormal}] Given three points in space (contained in
+  \dax{Vector3}s) that comprise a triangle return a vector that is
+  perpendicular to the triangle. The magnitude of the result is equal to
+  twice the area of the triangle. The result points away from the ``front''
+  of the triangle as defined by the standard counter-clockwise ordering of
+  the points.
+\end{description}
 
 \index{math|)}
 

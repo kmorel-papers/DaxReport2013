@@ -5518,6 +5518,55 @@ public:
 \section{OpenGL Interoperability}
 \label{sec:OpenGLInteroperability}
 
+\index{interop|(}
+\index{OpenGL|(}
+
+Although it is designed to run on GPUs, the Dax toolkit is not a rendering
+library. However, as a toolkit for visualization, it is often desirable to
+directly render the results from computations using a rendering library
+like OpenGL. In such a circumstance, it is desireable to transfer data in
+Dax arrays directly into OpenGL buffers rather than pull back to the CPU
+and push again to the in a different context.
+
+To facilitate this direct transfer, the Dax toolkit comes with an OpenGL
+interoperability feature. To transfer an array used in the Dax toolkit to
+an OpenGL context, use the \daxopengl{TransferToOpenGL} function. The
+function takes two arguments. The first argument is a \daxcont{ArrayHandle}
+to transfer. The second argument is a reference to a \textcode{GLuint}. If
+this argument contains a valid handle to an OptnGL buffer, then that buffer
+will point to the array being transferred. Otherwise, a new buffer handle
+will be generated and returned in this second argument. The function
+returns a \textcode{GLenum} containing the identifier for the OpenGL type
+in the OpenGL buffer. An overloaded version version of
+\textidentifier{TransferToOpenGL} takes a third argument that specifies the
+OpenGL type to use in a \textcode{GLenum}.
+
+\begin{daxexample}{Using OpenGL Interoperability}
+DAX_CONT_EXPORT
+void BindPointCoordinates(dax::cont::ArrayHandle<dax::Vector3> pointArray)
+{
+  GLuint oglPointBuffer;
+  glGenBuffers(1, &oglPointBuffer);
+
+  dax::opengl::TransferToOpenGL(pointArray, oglPointBuffer);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glBindBuffer(GL_ARRAY_BUFFER, oglPointBuffer);
+  glVertexPointer(3, GL_FLOAT, 0, NULL);
+}
+\end{daxexample}
+
+Although the Dax toolkit supports CUDA computations, it also supports
+several other types of architectures. Thus, the process for
+interoperability changes depending on the device adapter being used. The
+Dax interoperability takes this into account and will provide a custom
+overload of \textidentifier{TransferToOpenGL} depending on the abilities of
+the device adapter. Thus, code that uses the Dax toolkit with OpenGL does
+not need to provide conditionals to manage the different types of devices.
+
+\index{OpenGL|)}
+\index{interop|)}
+
 
 \section{Coding Conventions}
 \label{sec:CodingConventions}

@@ -2,12 +2,79 @@
 %% http://bibdesk.sourceforge.net/
 
 
-%% Created for kmorel at 2013-12-12 16:26:39 -0700 
+%% Created for kmorel at 2013-12-16 15:26:22 -0700 
 
 
 %% Saved with string encoding Unicode (UTF-8) 
 
 
+
+@article{Moreland2013:TVCG,
+	Abstract = {The most common abstraction used by visualization libraries and applications today is what is known as the visualization pipeline. The visualization pipeline provides a mechanism to encapsulate algorithms and then couple them together in a variety of ways. The visualization pipeline has been in existence for over twenty years, and over this time many variations and improvements have been proposed. This paper provides a literature review of the most prevalent features of visualization pipelines and some of the most recent research directions.},
+	Annote = {A survey of research pertaining to visualization pipelines, the libraries that implement them, and the tools that use them.},
+	Author = {Kenneth Moreland},
+	Date-Added = {2013-12-16 22:26:20 +0000},
+	Date-Modified = {2013-12-16 22:26:20 +0000},
+	Journal = {IEEE Transactions on Visualization and Computer Graphics},
+	Month = {March},
+	Note = {{DOI}~10.1109/TVCG.2012.133},
+	Number = {3},
+	Pages = {367--378},
+	Title = {A Survey of Visualization Pipelines},
+	Volume = {19},
+	Year = {2013},
+	Bdsk-Url-1 = {http://dx.doi.org/10.1109/TVCG.2012.133}}
+
+@inproceedings{Alumbaugh2005,
+	Abstract = {In this paper, we present simple and efficient array-based mesh data structures, including a compact representation of the half-edge data structure for surface meshes, and its generalization --a half-face data structure-- for volume meshes. These array-based structures provide comprehensive and efficient support for querying incidence, adjacency, and boundary classification, but require substantially less memory than pointer-based mesh representations. In addition, they are easy to implement in traditional programming languages (such as in C or Fortran 90) and convenient to exchange across different software packages or different storage media. In a parallel setting, they also support partitioned meshes and hence are particularly appealing for large-scale scientific and engineering applications. We demonstrate the construction and usage of these data structures for various operations, and compare their space and time complexities with alternative structures.},
+	Annote = {Describes a cellular data structure (sometimes abbreviated CDS). It is based on the observation that each polyhedron in a linear mesh is itself a manifold polygon mesh. Thus, each polyhedron is represented with a half-edge structure. The global mesh topology is represented by half-faces (also sometimes called half-facets). Each cell has a circular linked list of half-faces. As the name implies, there are two half-faces for each face in the mesh, one for each incident cell. Each half-face points to the next half-face in the cell's list, the half-face for the adjacent cell, and a half edge for the face in the half-edge structure for this cell.},
+	Author = {Tyler J Alumbaugh and Xiangmin Jiao},
+	Booktitle = {Proceedings, 14th International Meshing Roundtable},
+	Date-Added = {2013-12-16 22:02:37 +0000},
+	Date-Modified = {2013-12-16 22:02:37 +0000},
+	Month = {September},
+	Pages = {485--504},
+	Title = {Compact Array-Based Mesh Data Structures},
+	Year = {2005}}
+
+@inproceedings{Kettner1998,
+	Abstract = {Design solutions for a program library are presented for combinato- 
+rial data structures in computational geometry, such as planar maps 
+and polyhedral surfaces. Design issues considered are genericity, 
+flcsibility, time and space efficiency, and ease-of-use. We focus 
+on topological aspects of polyhedral surfaces. Edge-based repre- 
+w%ations for polyhedrons are evaluated with respect to the design 
+goals. A design for polyhedral surfaces in a halfedge data structure 
+is developed following the generic programming paradigm known 
+from the Standard Template Library STL for C++. Connections 
+arc shown to planar maps and face-based structures managing holes 
+in facets.},
+	Annote = {Describes half-edge structures for representing polygonal meshes. In a conformal polygon mesh, each edge is shared by (at most) two polygons. In the half-edge structure, each edge is represented by two half edges, each associated with one of the two adjacent polygons. A polygon is represented as the cycle of half edges around it. Each half-edge points to the next half edge and the adjacent half edge, which is pointing in the opposite direction.},
+	Author = {Lutz Kettner},
+	Booktitle = {Proceedings of the Fourteenth ACM Symposium on Computational Geometry},
+	Date-Added = {2013-12-16 22:02:37 +0000},
+	Date-Modified = {2013-12-16 22:02:37 +0000},
+	Note = {{DOI}~10.1145/276884.276901},
+	Pages = {146--154},
+	Title = {Designing a Data Structure for Polyhedral Surfaces},
+	Year = {1998}}
+
+@inproceedings{Levy2001,
+	Abstract = {We present the Circular Incident Edge Lists (CIEL), a new data structure and a high-performance algorithm for generating a series of iso-surfaces in a highly unstructured grid. Slicing-based volume rendering is also considered. The CIEL data structure represents all the combinatorial information of the grid, making it possible to optimize the classical propagation from local minima paradigm. The usual geometric structures are replaced by a more efficient combinatorial structure. An active edges list is maintained, and iteratively propagated from an iso-surface to the next one in a very efficient way. The intersected cells incident to each active edge are retrieved, and the intersection polygons are generated by circulating around their facets. This latter feature enables arbitrary irregular cells to be treated, such as those encountered in certain computational fluid dynamics (CFD) simulations. Since the CIEL data structure solely depends on the connections between the cells, it is possible to take into account dynamic changes in the geometry of the mesh and in property values, which only requires the sorted extrema list to be updated. Experiments have shown that our approach is significantly faster than classical methods. The major drawback of our method is its memory consumption, higher than most classical methods. However, experimental results show that it stays within a practical range.},
+	Annote = {Describes circular incident edge lists (CIEL) to represent polyhedral meshes. Circular incident edge lists are represented almost wholly by half edges. Each half-edge belongs to a particular face of a particular cell. Each half-edge has several links to capture the polyhedra topology:
+
+* A link to the next vertex in the face of the cell (equivalent to the adjacent edge link in a half-edge data structure).
+* A link to the half edge of the adjacent face in the same cell (equivalent to the adjacent polygon in a half-edge data structure).
+* A link to the corresponding half-edge in the adjacent cell along the face (which will be pointing in the opposite direction).
+* A linked list of all half-edges attached to a vertex.},
+	Author = {Bruno L\'{e}vy and Guillaume Caumon and St\'{e}phane Conreaux and Xavier Cavin},
+	Booktitle = {Proceedings of IEEE Visualization},
+	Date-Added = {2013-12-16 22:02:37 +0000},
+	Date-Modified = {2013-12-16 22:02:37 +0000},
+	Month = {October},
+	Pages = {191--198},
+	Title = {Circular Incident Edge Lists: a Data Structure for Rendering Complex Unstructured Grids},
+	Year = {2001}}
 
 @book{Press2002,
 	Author = {William H. Press and Saul A. Teukolsky and William T. Vetterling and Brian P. Flannery},

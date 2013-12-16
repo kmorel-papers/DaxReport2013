@@ -6,14 +6,148 @@ recorded in Chapters \ref{chap:Overview} and \ref{chap:Documentation}.
 
 \section{Lessons Learned}
 
+As with any reasearch project, over the course of the work we made
+discovers that taught us what does and does not work well. The publications
+listed in the executive summary of this document report the major findings,
+particularly the larger ones. Here we capture some smaller discoveries
+that, although themselves not warranting their own publication, have
+contributed to our understanding of developing a general purpose toolkit
+for massively threaded visualization algorithms.
+
+\subsection{Abandonment of Kernel Fusion}
+
+In the original proposal for this project, we described a system that
+builds a pipeline of operations, much like the VTK pipeline but with much
+lighter-weight operations. The system would find chains of operations and
+then group their execution together so that all operations would happen on
+a single data element together. The main intention of this specalized form
+of kernel fusion is to maximize the amount of execution happening per load
+of the data.
+
+As we attempted to implement such a system, we found the implementation was
+more technically difficult than expected. Worse, the API for managing these
+connections was extremely awkward in the sense that the it was difficult to
+understand and difficult to use even if it was understood. Both the
+underlying system and the API underwent several unsatisfactory redesigns.
+
+Eventually, we decided that this extra complication in both interface and
+implementaiton was not providing much. The Dax toolkit is already
+structured in such a way as to encourage adding many instructions to a
+minimal amount of data by coding through the worklet paradigm. Ultimately,
+the optimization was doing nothing that a Dax user was not likely to be
+doing herself.
+
+This distraction stalled the toolkit development for several months. Once
+we changed to a more imparative interface, development took off as is
+evident with the plot of repository commits over time.
+
 \noindent
-\fix{-Abandonment of Kernel fusion} \\
-\fix{-No explicit handling of memory hierarchy} \\
-\fix{-Alternate topology data structures} \\
-\fix{--Commonly used version work well} \\
-\fix{--Described in Section~\ref{sec:GridStructures}} \\
-\fix{-Data transfer time} \\
-\fix{--Not as critical as you would expect} \\
+\includegraphics[width=\textwidth]{images/GitActivity}
+
+\subsection{Explicit Memory Hierarchy}
+
+The NVIDIA CUDA architecture has a very unique memory hierarchy. Cores are
+grouped into streaming multiprocessor units that together access a local
+``shared memory'' that is much faster than the global shared memory. Our
+initial expectation was that we would gain signficant performance
+enhancement by explicitly managing these memory hierarchies.
+
+However, early in the projects we made comparisons of the effect of memory
+access when either explicitly loading data into these shared memory banks
+or by simply allowing the GPU's caching mechanism to load the shared
+memory. What we found was that the automatic caching mechanism generally
+worked as well as our hand-tuned memory loading using knowledge about the
+structure of the data and our access to it.
+
+So, our conclusion is that allowing the caching mechanism is a good way to
+populate the memory hierarchy while also realizing code that is simpler and
+easier to maintain.
+
+\subsection{Alternate Topology Data Structures}
+
+Before designing algorithms within the Dax toolkit, we had to agree on a
+data representation for our grid structures. Meshes like a uniform grid are
+straightforward because their topology is implicit and there is nothing
+much to capture. However, for more general unstructured combinations there
+must be an explicit way to establish the shape of each cell and the
+connections between them.
+
+The data model used by VTK and many other software packages and
+applications uses a vertex-cell model where an index array captures for
+each cell the points that comprise the cell's vertices. The vertices for a
+particular cell type follow a conventional order such as the CGNS
+convention\lcite{CGNS}.
+
+We also considered several alternate methods for representing meshes of
+polyhedra. These included half-edge and winged-edge
+structures\lcite{Kettner1998}, cellular data
+structures\lcite{Alumbaugh2005}, and circular incident edge
+lists\lcite{Levy2001}. All of these representations use a linked list of
+indices that trace around the constituent elements of a cell.
+
+The advantage of these structures is that the can capture some of the
+incidence relationships that the vertex-cell model does not directly
+capture. However, the disadvantage is that to build these structures, it
+means finding these incidence relationships whether they are directly used
+or not. Furthermore, when one mesh is derived from another mesh, these
+relationships again have to be derived one from another. Another problem
+with these mesh types is that they often require tracing links to find
+information about the data structure, and following these linked lists is
+often an inefficient operation on massively threaded processors.
+
+Consequently, the Dax toolkit uses the traditional vertex-cell model to
+represent its unstructured grids, as described in
+Section~\ref{sec:GridStructures}. We have discovered a variety of sorting
+techniques to find incidence relationships that are not explicitly captured
+with the cell links.
+
+\subsection{Data Transfer Time}
+
+It is common knowledge that when using an accelerator like a GPU that you
+should avoid transferring data to and from the accelerator like the
+plague. This is because the speed of the bus between the host computer and
+the accelerator device is orders of magnitude slower than accessing the
+memory locally.
+
+This advice is certainly true for something like rendering where a
+repetitive operation must cycle at 20Hz or faster. It is also true for
+small operations. For example, you cannot transfer data back and forth
+every time a simple vector operation is performed. However, this advice can
+lead you astray if taken too far.
+
+We performed an informal investigation on the transfer time with respect to
+the operating time of an algorithm within the Dax framework. What we find
+is that for an operation that performs more than a trivial amount of
+computation, the transfer time is insignificant. For example, the Marching
+Cubes algorithm, which itself is not a huge amount of computation, still
+spends two orders of magnitude more time in execution than in the total
+time of transferring memory to and from the GPU as demonstrated in
+Figure~\ref{fig:TransferVsExecution}.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics{images/TransferVsExecution}
+  \caption{Comparison of execution time vs. transfer time.}
+  \label{fig:TransferVsExecution}
+\end{figure}
+
+The importance of this finding is the simplification of integrating
+algorithms in the Dax toolkit with other visualization systems like VTK and
+ParaView. These are based on the visualization
+pipeline\lcite{Moreland2013:TVCG}, which splits algorithms into individual
+components. Although it would be possible to leave data on the GPU when
+passing from one component to the next, it creates great difficulty in
+managing the limited amount of memory available because there is no good
+way to know what, if anything, will be required from one component to the
+next.
+
+A more tractable approach is to pull all data back to the host memory
+before passing from one algorithm to the next. Compared to an algorithm
+like Marching Cubes, the overhead is negligible. Even for very minor
+operations like finding normals, the overhead does not get above a few
+hundredths of a second. Since visualization pipelines typically do not get
+very deep and are executed infrequently compared to other operations like
+rendering, adding such an overhead is irrelevant in practice.
 
 \section{Results}
 

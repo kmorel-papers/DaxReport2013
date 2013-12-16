@@ -20,6 +20,8 @@ set(images
   images/CellConnectionsVertex.pdf
   images/CellConnectionsVoxel.pdf
   images/CellConnectionsWedge.pdf
+  images/GitActivity.png
+  images/TransferVsExecution.pdf
   images/TimingThresholdPointMask.pdf
   images/TimingThresholdNoPointMask.pdf
   images/TimingMCManifold.pdf

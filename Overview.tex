@@ -1,7 +1,7 @@
 % -*- latex -*-
 
 The Dax toolkit is built to develop a readiness for scientific data
-analysis and visualizaiton at extreme scale. In particular, we address the
+analysis and visualization at extreme scale. In particular, we address the
 challenges of emerging multi- and many-core architectures. To achieve this
 readiness, our project has three overarching goals.
 
@@ -72,7 +72,7 @@ Section~\ref{sec:GenericScheduling}.
 The Dax toolkit allows users to design algorithms that are run on massive
 amounts of threads. These algorithms are embedded in worklets
 \index{worklet} and can be run on a number of devices. However, the Dax
-toolkit also allows users to interface to appliations, define data, and
+toolkit also allows users to interface to applications, define data, and
 invoke algorithms that they have written or are provided otherwise.
 
 These two modes represent significantly different operations on the
@@ -90,7 +90,7 @@ disallowed. The environments are as follows.
 \begin{description}
 \item[Execution Environment] \index{execution~environment} This is the
   environment in which worklets are executed. The API for this environment
-  provides work for one element with convienient access to information such
+  provides work for one element with convenient access to information such
   as connectivity and neighborhood as needed by typical visualization
   algorithms. Code for the execution environment is designed to always
   execute on a very large number of threads.
@@ -104,7 +104,7 @@ disallowed. The environments are as follows.
 \end{description}
 
 These dual programming environments are partially a convenience to isolate
-the application from the excution of the worklets and are partially a
+the application from the execution of the worklets and are partially a
 necessity to support GPU languages with host and device environments. The
 control and execution environments are logically equivalent to the host and
 device environments, respectively, in CUDA\lcite{CUDA} and other associated
@@ -123,7 +123,7 @@ is that first the control thread establishes a data set in the control
 environment and then invokes a parallel operation on the data using a
 worklet. From there the data is logically divided into its constituent
 elements, which are sent to independent invocations of the worklet. The
-worklet invocations, being indepenent, are run on as many concurrent
+worklet invocations, being independent, are run on as many concurrent
 threads as are supported by the device. On completion the results of the
 worklet invocations are collected to a single data structure and a handle
 is returned back to the control environment.
@@ -152,7 +152,7 @@ specialization, and that specialization is encapsulated in a unit called a
 \keyterm{device adapter}. Thus, porting the Dax toolkit to a new
 architecture can be done by only adding a device adapter.
 
-The device adapter is shown diagramatically as
+The device adapter is shown diagrammatically as
 the connection between the control and execution environments in
 Figure~\ref{fig:DaxDiagram}. The functionality of the device adapter
 comprises two main parts: a collection of parallel algorithms run in the
@@ -206,7 +206,7 @@ an algorithm, Dax will automatically allocate data in the array to store
 the appropriate amount of data.
 
 Although the array handle interface is available exclusively in the control
-environment, an array handle object manages data in botht he control and
+environment, an array handle object manages data in both the control and
 execution environment. This is done using the data transfer module of the
 device adapter. \index{device~adapter} As described in
 Section~\ref{sec:DeviceIndependence}, if the control and execution
@@ -230,7 +230,7 @@ handle uses generic access to adapt to any layout.
 
 \index{container!see{array~container}}
 
-This generic access is achived through a \keyterm{container}
+This generic access is achieved through a \keyterm{container}
 \index{array~container} object. The container provides an encapsulated
 interface around the data so that any necessary strides or offsets may be
 handled internally.

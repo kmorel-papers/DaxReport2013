@@ -6,7 +6,7 @@ recorded in Chapters \ref{chap:Overview} and \ref{chap:Documentation}.
 
 \section{Lessons Learned}
 
-As with any reasearch project, over the course of the work we made
+As with any research project, over the course of the work we made
 discovers that taught us what does and does not work well. The publications
 listed in the executive summary of this document report the major findings,
 particularly the larger ones. Here we capture some smaller discoveries
@@ -20,7 +20,7 @@ In the original proposal for this project, we described a system that
 builds a pipeline of operations, much like the VTK pipeline but with much
 lighter-weight operations. The system would find chains of operations and
 then group their execution together so that all operations would happen on
-a single data element together. The main intention of this specalized form
+a single data element together. The main intention of this specialized form
 of kernel fusion is to maximize the amount of execution happening per load
 of the data.
 
@@ -31,14 +31,14 @@ understand and difficult to use even if it was understood. Both the
 underlying system and the API underwent several unsatisfactory redesigns.
 
 Eventually, we decided that this extra complication in both interface and
-implementaiton was not providing much. The Dax toolkit is already
+implementation was not providing much. The Dax toolkit is already
 structured in such a way as to encourage adding many instructions to a
 minimal amount of data by coding through the worklet paradigm. Ultimately,
 the optimization was doing nothing that a Dax user was not likely to be
 doing herself.
 
 This distraction stalled the toolkit development for several months. Once
-we changed to a more imparative interface, development took off as is
+we changed to a more imperative interface, development took off as is
 evident with the plot of repository commits over time.
 
 \noindent
@@ -49,7 +49,7 @@ evident with the plot of repository commits over time.
 The NVIDIA CUDA architecture has a very unique memory hierarchy. Cores are
 grouped into streaming multiprocessor units that together access a local
 ``shared memory'' that is much faster than the global shared memory. Our
-initial expectation was that we would gain signficant performance
+initial expectation was that we would gain significant performance
 enhancement by explicitly managing these memory hierarchies.
 
 However, early in the projects we made comparisons of the effect of memory
@@ -159,13 +159,13 @@ Marching Cubes.
 \subsection{Threshold}
 
 The threshold algorithm can be summarized as follows: For each cell in the
-dataset, find the points that form the cell and the corresponding scalar
+data set, find the points that form the cell and the corresponding scalar
 field values for each of those points. If the scalar field values for all
 the points are within the threshold range, then pass the cell and the
-corresponding points to the output dataset. Since points are often shared
+corresponding points to the output data set. Since points are often shared
 between cells, we also avoid passing duplicate points in the output. This
 ensures both that the representation of the output does not require more
-space than needed and that the resultant dataset is suitable for further
+space than needed and that the resultant data set is suitable for further
 analysis if needed.
 
 To implement the algorithm within the Dax framework, we need to map the
@@ -174,7 +174,7 @@ algorithm to multiple worklets. Based on the implementation by Lo
 following steps:
 
 \begin{enumerate}
-\item For every cell in the input dataset, we need to first determine if it
+\item For every cell in the input data set, we need to first determine if it
   passes the threshold criteria. This can be implemented with a cell map
   worklet whose output is the number of cells it will create. In the case
   of threshold, this will be either 0 or 1 cell.
@@ -246,7 +246,7 @@ and managing these connections is parallel processing is challenging. The
 operation of Marching Cubes is similar to that of the threshold algorithm.
 
 \begin{itemize}
-\item For every cell in the input dataset, we need to first determine how
+\item For every cell in the input data set, we need to first determine how
   many polygons and points will be produced. In the case of Marching Cubes,
   we look in our case table and determine the size of the output.
 \item Once we have generated the count array, we need to determine how much

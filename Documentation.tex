@@ -9,7 +9,7 @@ toolkit is implemented as a header library, meaning that all the code is
 implemented in header files (with extension \textfilename{.h}) and
 completely included in any code that uses it. This is typically necessary
 of template libraries, which need to be compiled with template parameters
-that are not known until they are used. This also provides the convienience
+that are not known until they are used. This also provides the convenience
 of allowing the compiler to inline user code for better performance.
 
 When documenting the Dax API, the following conventions are used.
@@ -73,7 +73,7 @@ located in the \daxmath{} package. The features in \daxmath{} are available
 in both the control and execution environments, but they are typically used
 in the execution environment.
 
-The Dax toolkit contains code that uses specalized compiler features, such
+The Dax toolkit contains code that uses specialized compiler features, such
 as those with CUDA and OpenMP, or libraries, such as Intel Threading
 Building Blocks, that will not be available on all machines. Code for these
 features are encapsulated in their own packages: \daxcuda{}, \daxopenmp{},
@@ -83,7 +83,7 @@ denote features that are accessible in only one environment or the other.
 
 The Dax toolkit contains OpenGL interoperability \index{OpenGL}
 \index{interoperability} that allows data generated with Dax to be
-efficiently transfered to OpenGL objects. This feature is encapsulated in
+efficiently transferred to OpenGL objects. This feature is encapsulated in
 the \daxopengl{} package.
 
 Figure~\ref{fig:Packages} provides a diagram of the Dax package hierarchy.
@@ -122,7 +122,7 @@ the class name (with a \textfilename{.h} extension) located in a directory
 corresponding to the package name. For example, the \daxcont{ArrayHandle}
 class is found in the \daxheader{dax/cont}{ArrayHandle.h} header. There
 are, however, exceptions to this rule. Some smaller classes and types are
-grouped together for convienience. These exceptions will be noted as
+grouped together for convenience. These exceptions will be noted as
 necessary.
 
 Within each namespace there may also
@@ -235,7 +235,7 @@ Dax provides several vector data types.
 The types \dax{Id2} and \dax{Id3} are couple and triple values of type
 \dax{Id}. The types \dax{Vector2}, \dax{Vector3}, and \dax{Vector4} are
 couple, triple, and quadruple values of type \dax{Scalar}. The elements of
-these vectors are accessed with the bracket operator, so they syntatically
+these vectors are accessed with the bracket operator, so they syntactically
 appear like short arrays. They additionally have a constant named
 \textidentifier{NUM\_COMPONENTS}\index{NUM\_COMPONENTS} to specify how many
 components are in the tuple.
@@ -297,7 +297,7 @@ objects of type \textcode{std::string}.
 
 A \dax{Tuple} of the appropriate type can be used interchangeably with a
 matching vector type. In fact, a vector type is really just a typedef over
-a \dax{Tuple}. This is convienient for a number of things including writing
+a \dax{Tuple}. This is convenient for a number of things including writing
 generic functions that work over all types.
 
 \begin{daxexample}{Interchangeability of tuples and vector types.}
@@ -382,7 +382,7 @@ function for convenience.
 
 When using templated types, it is often necessary to get information about
 the type or specialize code based on general properties of the type. The
-Dax toolkit uses traits classes to publish and retreive information about
+Dax toolkit uses traits classes to publish and retrieve information about
 types. A traits class is simply a templated structure that provides
 typedefs for tag\index{tag} structures, empty types used for
 identification. The traits classes might also contain constant numbers and
@@ -450,7 +450,7 @@ T ModulusImpl(const T &numerator,
               dax::TypeTraitsScalarTag)
 {
   T quotient = numerator / denominator;
-  return (quotient - dax::math::Floor(quotient))*demoninator;
+  return (quotient - dax::math::Floor(quotient))*denominator;
 }
 
 template<typename T, typename NumericTag>
@@ -635,7 +635,7 @@ void RunCellAverage(const GridType &grid,
 The cell data to point data worklet finds all cells incident on each point
 and then averages the field values of all incident cells to the point.
 
-\fix{TODO: Running this worklet needs to be similfied. The scheduler needs
+\fix{TODO: Running this worklet needs to be simplified. The scheduler needs
   to be cleaned up to remove the helper classes. Also, there should
   probably be a specialized worklet type for doing cell to point
   operations.}
@@ -957,11 +957,11 @@ void RunSquare(const dax::cont::ArrayHandle<FieldType> &inField,
 \subsection{Tetrahedralize}
 
 The \daxworklet{Tetrahedralize} takes a data set and divides each cell into
-a group of simplicies (tetrahedra) that comprise the volume.
+a group of simplices (tetrahedra) that comprise the volume.
 
-\fix{TODO: Running this worklet needs to be simplfied. The scheduler needs
+\fix{TODO: Running this worklet needs to be simplified. The scheduler needs
   to be cleaned up to remove the helper classes. There is also some
-  hinkiness involved with specifing the count (classification) array.}
+  hinkiness involved with specifying the count (classification) array.}
 
 \begin{daxexample}{Tetrahedralize worklet.}
 #include <dax/worklet/Tetrahedralize.h>
@@ -1050,7 +1050,7 @@ for the control environment is designed to run on a single thread (or one
 single thread per process in an MPI job).
 
 Most users of the Dax toolkit will have some interaction with the Dax
-toolkit, for you cannot define data sturctures or execute any algorithms
+toolkit, for you cannot define data structures or execute any algorithms
 without it.
 
 \subsection{Device Adapter Tag}
@@ -1104,7 +1104,7 @@ to any one of the following.
 \item[\daxmacro{DAX\_DEVICE\_ADAPTER\_SERIAL}] Performs all computation on
   the same single thread as the control environment. This device is useful
   for debugging. This device is always available.
-\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_CUDA}] Uses a CUDA capabile GPU
+\item[\daxmacro{DAX\_DEVICE\_ADAPTER\_CUDA}] Uses a CUDA capable GPU
   device. For this device to work, Dax must be configured to use CUDA and
   the code must be compiled by the CUDA \textfilename{nvcc} compiler.
 \item[\daxmacro{DAX\_DEVICE\_ADAPTER\_OPENMP}] Uses OpenMP compiler
@@ -1124,7 +1124,7 @@ reconfigurations.
 
 \begin{daxexample}{Macros to port Dax code among different devices}
 // Uncomment one (and only one) of the following to reconfigure the Dax
-// code to use a particular device. Comment them all to automaticall pick a
+// code to use a particular device. Comment them all to automatically pick a
 // device.
 //#define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_SERIAL
 #define DAX_DEVICE_ADAPTER DAX_DEVICE_ADAPTER_CUDA
@@ -1136,7 +1136,7 @@ reconfigurations.
 
 The default device adapter can always be overridden by specifying a device
 adapter tag, as described in the next section. There is actually one more
-internal default device addapter named
+internal default device adapter named
 \daxmacro{DAX\_DEVICE\_ADAPTER\_ERROR} that will cause a compile error if
 any component attempts to use the default device adapter. This feature is
 most often used in testing code to check when device adapters should be
@@ -1155,7 +1155,7 @@ in Dax.
   computation on the same single thread as the control environment. This
   device is useful for debugging. This device is always available. This tag
   is defined in \daxheader{dax/cont}{DeviceAdapterSerial.h}.
-\item[\daxcudacont{DeviceAdapterTagCuda}] \index{CUDA} Uses a CUDA capabile
+\item[\daxcudacont{DeviceAdapterTagCuda}] \index{CUDA} Uses a CUDA capable
   GPU device. For this device to work, Dax must be configured to use CUDA
   and the code must be compiled by the CUDA \textfilename{nvcc}
   compiler. This tag is defined in
@@ -1253,7 +1253,7 @@ specifies the base type of the entries in the array. The second template
 parameter specifies the container used when storing data in the control
 environment. Containers are discussed later in this section, and for now we
 will use the default value. The third template parameter is a device
-adpater tag that specifies what device is used in the execution
+adapter tag that specifies what device is used in the execution
 environment. Device adapter tags are described in
 Section~\ref{sec:DeviceAdapterTag}. Most of the examples here will use the
 default device adapter.
@@ -1269,7 +1269,7 @@ class ArrayHandle;
 There are multiple ways to create and populate an array handle. The default
 \daxcont{ArrayHandle} constructor will create an empty array with nothing
 allocated in either the control or execution environment. This is
-convienient for creating arrays used as the output for algorithms.
+convenient for creating arrays used as the output for algorithms.
 
 \begin{daxexample}{Creating an \textidentifier{ArrayHandle} for output data.}
 dax::cont::ArrayHandle<dax::Scalar> outputArray;
@@ -1373,10 +1373,10 @@ methods are discussed in more detail in later sections.
 
 An array handle defines auxiliary structures called \keyterm{array portals}
 that provide direct access into its data. An array portal is a simple
-object that is somewhat functonally equivalent to an STL-type iterator, but
+object that is somewhat functionally equivalent to an STL-type iterator, but
 with a much simpler interface. Array portals can be read-only (const) or
 read-write and they can be accessible from either the control environment
-or the execution environment. All these varients have similar interfaces
+or the execution environment. All these variants have similar interfaces
 although some features that are not applicable can be left out.
 
 An array portal object contains each of the following:
@@ -1469,7 +1469,7 @@ execution environment, meaning that any subsequent use will cause the data
 to be copied back again.
 
 In reality, \textcode{GetPortalControl} and
-\textcode{GetPortalConstControl} are only realy used for testing purposes
+\textcode{GetPortalConstControl} are only really used for testing purposes
 or quick access to a particular value. Modifications to an array are better
 performed in the execution environment. Data is best retrieved by providing
 a container (described later) that deposits the data directly into your own
@@ -1609,7 +1609,7 @@ template<
 class ArrayHandle;
 \end{daxexample}
 The first argument is the only one required and has been demonstrated
-multiple times before. The thrid (optional) argument specifies the device
+multiple times before. The third (optional) argument specifies the device
 adapter, as described in detail in Section~\ref{sec:DeviceAdapterTag}. The
 second (optional) argument specifies something called a container, which
 provides the interface between the generic \daxcont{ArrayHandle} class and
@@ -1647,7 +1647,7 @@ dax::cont::ArrayHandle<
 The Dax toolkit also defines a macro named
 \daxmacro{DAX\_DEFAULT\_ARRAY\_CONTAINER\_CONTROL\_TAG} that can be used in
 place of an explicit array container tag to use the default tag. This macro
-is used to create new tempaltes that have tempalte parameters for array
+is used to create new templates that have template parameters for array
 containers that can use the default or to create array handles with the
 default container but a specific device adapter.
 
@@ -1699,7 +1699,7 @@ object.
 
 The first step in creating an adapter container is to create a control
 environment array portal to the data. This is described in more detail
-startign on page~\pageref{sec:ArrayPortals} and is generally
+starting on page~\pageref{sec:ArrayPortals} and is generally
 straightforward for simple containers like this. Here is an example
 implementation for our \textcode{FooFieldsDeque} container.
 
@@ -1934,7 +1934,7 @@ void GetElevationAirPressure(const GridType &grid, FooFieldsDeque *fields)
 \index{functional~array|(}
 
 The generic array handle and array container templating in the Dax toolkit
-allows for any type of operations to retreive a particular value. Typically
+allows for any type of operations to retrieve a particular value. Typically
 this is used to convert an index to some location or locations in
 memory. However, it is also possible to compute a value directly from an
 index rather than look up some value in memory. Such an array is completely
@@ -2015,7 +2015,7 @@ typedef dax::cont::ArrayContainerControlTagImplicit<ArrayPortalEvenNumbers>
 
 An array handle can be created directly with this tag as the container
 template parameter to \daxcont{ArrayHandle}. However, it is common to
-create a trival subclass of \daxcont{ArrayHandle} that simply constructs
+create a trivial subclass of \daxcont{ArrayHandle} that simply constructs
 the array handle to an implicit array portal of a given state. \fix{There
   remains an issue with the concept template matching mechanism that can
   cause this subclass to fail with these ArrayHandle subclasses.} The
@@ -2046,7 +2046,7 @@ work on a variable field is used on a constant value. The second is
 possible offset. The counting array is useful for generating fields of
 identifiers or for indexing operations. The Dax toolkit also provides
 \daxcont{make\_ArrayHandleConstant} and \daxcont{make\_ArrayHandleCounting}
-convienience functions to simplify building these arrays.
+convenience functions to simplify building these arrays.
 
 \index{functional~array|)}
 \index{implicit~container|)}
@@ -2068,12 +2068,12 @@ of the details are different.
 
 In this section we will demonstrate the steps required to create a derived
 container. For the purposes of the example, let us say we want to array
-handles to behave as one array with the contents concatinated together. We
+handles to behave as one array with the contents concatenated together. We
 could of course actually copy the data, but we can also do it in place.
 
 As before, the first step to creating a derived container is to build an
 array portal that will take portals from arrays being derived. The portal
-must work in both the control and execution environment (or have a seperate
+must work in both the control and execution environment (or have a separate
 version for control and execution).
 
 \begin{daxexample}[ex:DerivedArrayPortal]{Derived array portal for concatenated arrays.}
@@ -2166,7 +2166,7 @@ the two array handle types that we are deriving. Then, we need to create a
 specialization of the templated \daxcontinternal{ArrayContainerControl}
 class. The implementation for an \textidentifier{ArrayContainerControl} for
 a derived container is usually trivial compared to an adapter container
-because the majority of the work is defered to the derived arrays.
+because the majority of the work is deferred to the derived arrays.
 
 \begin{daxexample}[ex:DerivedArrayContainer]{\textidentifier{ArrayContainerControl} for derived container of concatenated arrays.}
 template<typename ArrayHandleType1, typename ArrayHandleType2>
@@ -2271,7 +2271,7 @@ private:
 One of the responsibilities of an array handle is to copy data between the
 control and execution environments. The default behavior is to request the
 device adapter to copy data items from one environment to another. This
-might involve transfering data between a host and device. For an array of
+might involve transferring data between a host and device. For an array of
 data resting in memory, this is necessary. However, implicit containers
 (described in the previous section) override this behavior to pass nothing
 but the functional array portal. Likewise, it is undesirable to do a raw
@@ -2284,7 +2284,7 @@ itself.
 \index{array~transfer|(}
 
 The mechanism that controls how a particular control array container gets
-transfered to and from the execution environment is encapsulated in the
+transferred to and from the execution environment is encapsulated in the
 templated \daxcontinternal{ArrayTransfer} class. By creating a
 specialization of \daxcontinternal{ArrayTransfer}, we can modify the
 transfer behavior to instead transfer the arrays being derived and use the
@@ -2347,7 +2347,7 @@ The \daxcontinternal{ArrayTransfer} must define the following items.
   copies data from the execution environment into it.
 \item[\textcode{Shrink}] A method that adjusts the size of the array in the
   execution environment to something that is a smaller size. All the data
-  up to the new length must remain vaild. Typically, no memory is actually
+  up to the new length must remain valid. Typically, no memory is actually
   reallocated. Instead, a different end is marked.
 \item[\textcode{GetPortalExecution}] A method that returns an array portal
   that can be used in the execution environment. The portal was defined in
@@ -2530,7 +2530,7 @@ private:
 
 The final step to make a derived container is to create a mechanism to
 construct an \textidentifier{ArrayHandle} with a container derived from the
-desired arrays. This can be done by creating a trival subclass of
+desired arrays. This can be done by creating a trivial subclass of
 \daxcont{ArrayHandle} that simply constructs the array handle to the state
 of an existing container. It uses a protected constructor of
 \daxcont{ArrayHandle} that accepts a constructed container, array transfer,
@@ -2649,20 +2649,20 @@ facilities are handled internally within Dax to pass data to worklets.
 \index{uniform~grid|(}
 
 A uniform grid is stored in a \daxcont{UniformGrid} class. A uniform grid
-is a topolgy structure where its points form a regular 3D array. The 3D
+is a topology structure where its points form a regular 3D array. The 3D
 array of points are axis aligned, and the spacing is uniform along each
 dimension. Adjacent are connected together in \index{voxel} \keyterm{voxel}
 cells, which are simply axis aligned hexahedra.
 
 The topology of a uniform grid is completely implicit and specified with
-three peices of information. First, the extent, stored in a \dax{Extent3}
+three pieces of information. First, the extent, stored in a \dax{Extent3}
 structure, specifies the minimum and maximum indices of the array. Second,
 the origin, stored in a \dax{Vector3}, gives the point coordinates of the
 point at index $[0,0,0]$ (which may not actually be in the extent of the
 grid). Third, the spacing, stored in a \dax{Vector3}, gives the amount of
 space between adjacent points in each dimension.
 
-The uniform grid class is templated on the device adaptor for which it is
+The uniform grid class is templated on the device adapter for which it is
 being used. Its prototype looks as follows.
 
 \begin{daxexample}{Prototype for \protect\daxcont{UniformGrid}.}
@@ -2711,7 +2711,7 @@ The \daxcont{UniformGrid} class provides the following features.
   dimensional cell index and returns the corresponding 3 dimensional index
   as a \dax{Id3}. This method performs the inverse operation of
   \textcode{ComputeCellIndex}.
-\item[\textcode{ComputePointCoordinates}] A convienience method that
+\item[\textcode{ComputePointCoordinates}] A convenience method that
   returns the spatial coordinates for a given point. This method is
   overloaded to accept either a 1 dimensional index as a \dax{Id} or a 3
   dimensional index as a \dax{Id3}.
@@ -2721,7 +2721,7 @@ The \daxcont{UniformGrid} class provides the following features.
 \item[\textcode{PointCoordinatesType}] The type returned by
   \textcode{GetPointCoordinates}. It is a specialization of
   \textidentifier{ArrayHandle}.
-\item[\textcode{TopologyStructConstExecution}] A memory copiable structure
+\item[\textcode{TopologyStructConstExecution}] A memory copyable structure
   holding the state of the uniform grid that can be used in the execution
   environment.
 \item[\textcode{PrepareForInput}] A method that returns a
@@ -2749,7 +2749,7 @@ of \dax{Vertex3} values containing one for each point. The cell connections
 array is an array of \dax{Id} values. The length of this array is the
 number of cells times the number of vertices per cell. The connections for
 a particular cell are grouped together in adjacent array values. The cell
-connetions are given in CGNS order\lcite{CGNS}. An example cell connection
+connections are given in CGNS order\lcite{CGNS}. An example cell connection
 array is given in Figure~\ref{fig:CellConnections}.
 
 \begin{figure}[htb]
@@ -2798,7 +2798,7 @@ The \daxcont{UnstructuredGrid} class provides the following features.
   points in the grid.
 \item[\textcode{GetNumberOfCells}] A method that returns the number of
   cells in the grid.
-\item[\textcode{TopologyStructExecution}] A memory copiable structure
+\item[\textcode{TopologyStructExecution}] A memory copyable structure
   holding the state of the uniform grid that can be used in the execution
   environment.
 \item[\textcode{TopologyStructConstExecution}] A read-only (const) form of
@@ -2969,7 +2969,7 @@ are available.
   \textcode{std::lower\_bound} STL algorithm. The results are returned in
   an \textidentifier{ArrayHandle} given in the third argument.
 
-  There are two specializations of \textcode{LowerBound}. The first takes
+  There are two specializations of \textcode{LowerBounds}. The first takes
   an additional comparison function that defines the less-than
   operation. The second takes only two parameters. The first is an
   \textidentifier{ArrayHandle} of sorted \dax{Id}s and the second is an
@@ -3062,7 +3062,7 @@ are available.
   \textcode{std::upper\_bound} STL algorithm. The results are returned in
   an \textidentifier{ArrayHandle} given in the third argument.
 
-  There are two specializations of \textcode{UpperBound}. The first takes
+  There are two specializations of \textcode{UpperBounds}. The first takes
   an additional comparison function that defines the less-than
   operation. The second takes only two parameters. The first is an
   \textidentifier{ArrayHandle} of sorted \dax{Id}s and the second is an
@@ -3104,7 +3104,7 @@ following (with minutia like include guards removed).
 The reason the Dax toolkit breaks up the code for its device adapters this
 way is that there is an interdependence between the implementation of each
 device adapter and the mechanism to pick a default device adapter. Breaking
-up the device adapter code in this way maintains an acyclic depedence among
+up the device adapter code in this way maintains an acyclic dependence among
 header files.
 
 \subsubsection{Tag}
@@ -3194,7 +3194,7 @@ elements.
   copies data from the execution environment into it.
 \item[\textcode{Shrink}] A method that adjusts the size of the array in the
   execution environment to something that is a smaller size. All the data
-  up to the new length must remain vaild. Typically, no memory is actually
+  up to the new length must remain valid. Typically, no memory is actually
   reallocated. Instead, a different end is marked.
 \item[\textcode{GetPortal}] A method that returns an array portal
   that can be used in the execution environment. The portal was defined in
@@ -3221,7 +3221,7 @@ with. The Dax toolkit comes with a class called
 \daxcontinternal{ArrayManagerExecutionShareWithControl} that provides the
 implementation for an execution array manager that shares a memory space
 with the control environment. In this case, making the
-\textidentifier{ArrayManagerExecution} specialization be a trival subclass
+\textidentifier{ArrayManagerExecution} specialization be a trivial subclass
 is sufficient. For example, here is the implementation of
 \textidentifier{ArrayManagerExecution} for TBB.
 
@@ -3461,7 +3461,7 @@ public:
   DAX_CONT_EXPORT static void Synchronize()
   {
     // Nothing to do. This device schedules all of its operations using a
-    // split/join paradigm. This means that the if the control threaad is
+    // split/join paradigm. This means that the if the control thread is
     // calling this method, then nothing should be running in the execution
     // environment.
   }
@@ -3627,7 +3627,7 @@ documented in Section~\ref{sec:GridStructures}.
 Tags can also have modifiers on them, which are attached with
 parenthesis. For example, a \sigtag{Field} can be declared as either
 \sigtagmod{Field}{Point} or \sigtagmod{Field}{Cell}. Likewise, a field
-could be modfied to be either \sigtag{In} (the default) or
+could be modified to be either \sigtag{In} (the default) or
 \sigtag{Out}. \fix{Note that this method of using parenthesis to modify
   tags is likely to change as some compilers do not support it.}
 
@@ -3646,14 +3646,14 @@ the following section on worklet types.
 Like the control signature, the execution signature of a worklet is the
 \textcode{typedef} of a function prototype named \executionsignature. The
 function prototype must match the parenthesis operator in terms of arity
-and argument sematics.
+and argument semantics.
 
 The arguments of the \executionsignature's function prototype are tags that
 define where the data comes from. The most common tags are an underscore
 followed by a number, such as \sigtagnum{1}, \sigtagnum{2}, etc. These
 numbers refer back to the corresponding argument in the
 \controlsignature. For example, \sigtagnum{1} means data from the first
-control signature argument, \sigtagnum{2} meands data from the second
+control signature argument, \sigtagnum{2} means data from the second
 control signature argument, etc.
 
 Unlike the control signature, the execution signature optionally can
@@ -3769,7 +3769,7 @@ A cell map worklet supports the following tags in the parameters of its
   If the \sigtag{Topology} argument is referenced with a numeric tag in the
   \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
   receives the cell-type tag (such as \dax{CellTagTriangle} or
-  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  \dax{CellTagVoxel}). This is sometimes useful for specializing   based
   on the cell type, but usually unnecessary.
 
   If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
@@ -3906,7 +3906,7 @@ of its \controlsignature.
   If the \sigtag{Topology} argument is referenced with a numeric tag in the
   \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
   receives the cell-type tag (such as \dax{CellTagTriangle} or
-  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  \dax{CellTagVoxel}). This is sometimes useful for specializing   based
   on the cell type, but usually unnecessary.
 
   If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
@@ -4099,7 +4099,7 @@ of its \controlsignature.
   If the \sigtag{Topology} argument is referenced with a numeric tag in the
   \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
   receives the cell-type tag (such as \dax{CellTagTriangle} or
-  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  \dax{CellTagVoxel}). This is sometimes useful for specializing   based
   on the cell type, but usually unnecessary.
 
   If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
@@ -4299,7 +4299,7 @@ parameters of its \controlsignature.
   If the \sigtag{Topology} argument is referenced with a numeric tag in the
   \executionsignature (e.g. with \sigtagnum{1}), then the worklet operator
   receives the cell-type tag (such as \dax{CellTagTriangle} or
-  \dax{CellTagVoxel}). This is sometimes useful for specializing te  based
+  \dax{CellTagVoxel}). This is sometimes useful for specializing   based
   on the cell type, but usually unnecessary.
 
   If the \sigtag{Topology} argument is referenced by a \sigtag{Vertices}
@@ -4563,7 +4563,7 @@ dax::Vector3 TriangleSideLengths(const dax::Vector3 &point1,
 DAX_EXEC_EXPORT
 dax::Scalar TriangleQuality(const dax::Vector3 &sideLengths)
 {
-  // Heron's formulat for triangle area.
+  // Heron's formula for triangle area.
   dax::Scalar semiparameter = (sideLengths[0]+sideLengths[1]+sideLengths[2])/2;
   dax::Scalar area = dax::math::Sqrt(semiparameter*
                                      (semiparameter - sideLengths[0])*
@@ -4766,7 +4766,7 @@ DAX_CONT_EXPORT
 dax::cont::ArrayHandle<dax::Scalar>
 InvokeSquareRoot(dax::cont::ArrayHandle<dax::Scalar> input)
 {
-  dax::cont::ArrayHandle<dax::Scalar> outut;
+  dax::cont::ArrayHandle<dax::Scalar> output;
 
   dax::cont::Scheduler<> scheduler;
   try
@@ -4775,7 +4775,7 @@ InvokeSquareRoot(dax::cont::ArrayHandle<dax::Scalar> input)
     }
   catch (dax::cont::ErrorExecution error)
   {
-    std::cout << "An error occured when taking square root: "
+    std::cout << "An error occurred when taking square root: "
               << error.GetMessage() << std::endl;
   }
 }
@@ -4854,7 +4854,7 @@ vectors, and other elements. The following functions are provided.
 In addition, \daxheader{dax/math}{Compare.h} provides the pair of templated
 functors \daxmath{SortLess} and \daxmath{SortGreater} functors. Both
 functors provide an operation that takes two values of the given type and
-returns a boolean. When templated on a scalar type,
+returns a Boolean. When templated on a scalar type,
 \textidentifier{SortLess} and \textidentifier{SortGreater} return whether
 the first value is less than or greater than, respectively, the second
 value. For types that behave like vectors, these two functors provide a
@@ -4872,7 +4872,7 @@ Functions that perform various type of exponential functions are located in
 \item[\daxmath{Cbrt}] \index{cube root} Takes one argument and returns the
   cube root of that argument. If called with a vector type, returns a
   component-wise cube root.
-\item[\daxmath{Exp}] \index{exponental} Computes $e^x$ where $x$ is the
+\item[\daxmath{Exp}] \index{exponential} Computes $e^x$ where $x$ is the
   argument to the function and $e$ is Euler's number (approximately
   $2.71828$). If called with a vector type, returns a component-wise
   exponent.
@@ -4975,7 +4975,7 @@ functions that operate on matrices.
 \item[\daxmath{MatrixInverse}] \index{inverse matrix} Finds and returns the
   inverse of a given matrix. The function takes two arguments. The first
   argument is the matrix to invert. The second argument is a reference to a
-  boolean that is set to true if the inverse is found or false if the
+  Boolean that is set to true if the inverse is found or false if the
   matrix is singular and the returned matrix is incorrect.
 \item[\daxmath{MatrixMultiply}] Performs a matrix-multiply on its two
   arguments. Overloaded to work for matrix-matrix, vector-matrix, or
@@ -4994,7 +4994,7 @@ functions that operate on matrices.
   system $\matrixsym{A}\vectorsym{x} = \vectorsym{b}$ and returns
   $\vectorsym{x}$. The function takes three arguments. The first two
   arguments are the matrix $\matrixsym{A}$ and the vector $\vectorsym{b}$,
-  respectively. The thrid argument is a reference to a boolean that is set
+  respectively. The third argument is a reference to a Boolean that is set
   to true if a single solution is found, false otherwise.
 \end{description}
 
@@ -5019,7 +5019,7 @@ currently available are as follows.
   \item A functor whose operation takes a \dax{Tuple} and returns the
     evaluation of the math function at that point as another \dax{Tuple}.
   \item The \dax{Tuple} that represents the desired output of the function.
-  \item A \dax{Tuple} to use as the intial guess. If not specified, the
+  \item A \dax{Tuple} to use as the initial guess. If not specified, the
     origin is used.
   \item The convergence distance. If the iterative method changes all
     values less than this amount, then it considers the solution found. If
@@ -5106,7 +5106,7 @@ non-finite numbers (such as not-a-number and infinity) are located in
 \subsubsection{Positive or Negative Numbers}
 
 The \daxheader{dax/math}{Sign.h} header contains functions that deal with
-the sign (possitive or negative) of numbers. It defines the following
+the sign (positive or negative) of numbers. It defines the following
 functions.
 
 \begin{description}
@@ -5141,8 +5141,8 @@ functions.
 \item[\daxmath{ASinH}] \index{hyperbolic arcsine} \index{inverse hyperbolic sine}
   Returns the hyperbolic arcsine. If given a vector, performs a
   component-wise operation.
-\item[\daxmath{ATan}] \index{arctangent} \index{inverse tanget} Returns the
-  arctanget of a ratio in radians. If given a vector, performs a
+\item[\daxmath{ATan}] \index{arctangent} \index{inverse tangent} Returns the
+  arctangent of a ratio in radians. If given a vector, performs a
   component-wise operation.
 \item[\daxmath{ATan2}] Computes the arctangent of $y/x$ where $y$ is the
   first argument and $x$ is the second argument. \textidentifier{ATan2}
@@ -5161,7 +5161,7 @@ functions.
   radians. If given a vector, performs a component-wise operation.
 \item[\daxmath{SinH}] \index{hyperbolic sine} Returns the hyperbolic
   sine. If given a vector, performs a component-wise operation.
-\item[\daxmath{Tan}] \index{tangent} Returns the tanget of an angle given
+\item[\daxmath{Tan}] \index{tangent} Returns the tangent of an angle given
   in radians. If given a vector, performs a component-wise operation.
 \item[\daxmath{TanH}] \index{hyperbolic tangent} Returns the hyperbolic
   tangent. If given a vector, performs a component-wise operation.
@@ -5187,7 +5187,7 @@ operations.
   you actually plan to divide by the magnitude.
 \item[\daxmath{MagnitudeSquared}] Returns the square of the magnitude of a
   vector. It is usually much faster to compute the square of the magnitude
-  than the dquare, so you should use this function in place of
+  than the length, so you should use this function in place of
   \textidentifier{Magnitude} or \textidentifier{RMagnitude} when needing
   the square of the magnitude or any monotonically increasing function of a
   magnitude or distance. This function works on scalars as well as vectors,
@@ -5321,7 +5321,7 @@ following items for all known cell tags.
 When a worklet scheduled on cells is operating on a point field (generally
 identified with a \sigtagmod{Field}{Point} tag in the \controlsignature as
 described in Section~\ref{sec:ControlSignature}), then the Dax scheduler
-pulls all the relevent field values and passes them to the worklet in a
+pulls all the relevant field values and passes them to the worklet in a
 \daxexec{CellField} object. \textidentifier{CellField} is templated first
 on the field data type and second on the cell tag. The
 \textidentifier{CellField} class has a
@@ -5384,7 +5384,7 @@ public:
 
 The Dax execution environment API comes with several functions and classes
 that perform operations on cells. These facilities are templated on cell
-tags and opearte on \textidentifier{CellField} containers.
+tags and operate on \textidentifier{CellField} containers.
 
 \paragraph{Parametric Coordinates}
 \label{sec:ParametricCoordinates}
@@ -5444,7 +5444,7 @@ point within the cell to estimate a continuous field.
 
 The \daxheader{dax/exec}{Interpolate.h} header contains the function
 \daxexec{CellInterpolate} that takes a \daxexec{CellField} of field values
-and a \dax{Vector3} contining parametric coordinates. It returns the
+and a \dax{Vector3} containing parametric coordinates. It returns the
 interpolated value of the field. The \daxworklet{PointDataToCellData}
 worklet provides a simple example of interpolating fields.
 
@@ -5524,7 +5524,7 @@ public:
 Although it is designed to run on GPUs, the Dax toolkit is not a rendering
 library. However, as a toolkit for visualization, it is often desirable to
 directly render the results from computations using a rendering library
-like OpenGL. In such a circumstance, it is desireable to transfer data in
+like OpenGL. In such a circumstance, it is desirable to transfer data in
 Dax arrays directly into OpenGL buffers rather than pull back to the CPU
 and push again to the in a different context.
 
@@ -5533,7 +5533,7 @@ interoperability feature. To transfer an array used in the Dax toolkit to
 an OpenGL context, use the \daxopengl{TransferToOpenGL} function. The
 function takes two arguments. The first argument is a \daxcont{ArrayHandle}
 to transfer. The second argument is a reference to a \textcode{GLuint}. If
-this argument contains a valid handle to an OptnGL buffer, then that buffer
+this argument contains a valid handle to an OpenGL buffer, then that buffer
 will point to the array being transferred. Otherwise, a new buffer handle
 will be generated and returned in this second argument. The function
 returns a \textcode{GLenum} containing the identifier for the OpenGL type
@@ -5606,12 +5606,12 @@ continual interaction with VTK.
   statement. The test will print out a suggested text that can be copied
   and pasted to any file that has a missing copyright statement (with
   appropriate replacement of comment prefix). Exceptions to this copyright
-  statemnet (for example, third-party files with different but compatible
+  statement (for example, third-party files with different but compatible
   statements) can be added to \textfilename{LICENSE.txt}.
 \item All include files should use include guards. starting right after the
   copyright statement. The naming convention of the include guard macro is
   that it should start with two underscores and be followed with the
-  pathname, starting from the top-level source code directory, with non
+  path name, starting from the top-level source code directory, with non
   alphanumeric characters, such as \textcode{/} and \textcode{.} replaced
   with underscores. The \textcode{\#endif} part of the guard at the bottom
   of the file should include the guard name in a comment. For example, the
@@ -5629,8 +5629,8 @@ continual interaction with VTK.
   each namespace should be on its own line, and the code inside the
   namespace bracket should not be indented. The closing brace at the bottom
   of the namespace should be documented with a comment identifying the
-  namespace. Namespaces can be grouped an ungrouped as desired. The
-  following is a valid use of namespaces.
+  namespace. Namespaces can be grouped as desired. The following is a valid
+  use of namespaces.
   \begin{verbatim}
 namespace dax {
 namespace cont {
@@ -5646,7 +5646,7 @@ class ExposedClass;
 }
 } // namespace dax::cont
 \end{verbatim}
-\item Multple inheritance is not allowed in Dax classes.
+\item Multiple inheritance is not allowed in Dax classes.
 \item Any functional public class should be in its own header file with the
   same name as the class. The file should be in a directory that
   corresponds to the namespace the class is in. There are several
@@ -5656,7 +5656,7 @@ class ExposedClass;
     implementation of the class to be broken into pieces. Sometimes a
     specialization is placed in a header with a different name.
   \item Many Dax toolkit features are not encapsulated in
-    classes. Functions may be collected by purpose or colocated with
+    classes. Functions may be collected by purpose or co-located with
     associated class.
   \item Although tags are technically classes, they do not behave as an
     enumeration for the compiler. Multiple tags that make up this
@@ -5695,7 +5695,7 @@ if (test)
   at all.
 \item There should be no trailing whitespace in any line.
 \item Use only alphanumeric characters in names. Use capitalization to
-  demarcate words within a name (camel case). The execption is preprocessor
+  demarcate words within a name (camel case). The exception is preprocessor
   macros and constant numbers that are, by convention, represented in all
   caps and a single underscore to demarcate words.
 \item Namespace names are in all lowercase. They should be a single word
@@ -5767,7 +5767,7 @@ if (test)
 
 We should note that although these conventions impose a strict statute on
 Dax coding, these rules (other than those involving licensing and
-copyright) are not ment to be dogmatic. Examples can be found in the
+copyright) are not meant to be dogmatic. Examples can be found in the
 existing code that break these conventions, particularly when the
 conventions stand in the way of readability (which is the point in having
 them in the first place). For example, it is often the case that it is more

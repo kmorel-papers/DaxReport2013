@@ -5571,22 +5571,206 @@ not need to provide conditionals to manage the different types of devices.
 \section{Coding Conventions}
 \label{sec:CodingConventions}
 
-\fix{-follows VTK conventions where possible}\\
-\fix{-2 space indentation}\\
-\fix{-no tabs}\\
-\fix{-fit within 80 column display whenever possible}\\
-\fix{-namespaces are lower case}\\
-\fix{-Class names are camel case starting with upper case}\\
-\fix{-Classes are declared in a file with the same name as the class in a
-  directory corresponding to the package/namespace}\\
-\fix{--Except where they're not}\\
-\fix{-Method, function, and class field names are camel case starting with
-  upper case}\\
-\fix{--Except when conflicts with convention from some other library
-  (e.g. make\_Vector2 corresponds to make\_pair in standard template
-  library).}\\
-\fix{-local variables and parameters are camel case starting with lower
-  case}\\
-\fix{-spelled out identifiers}\\
-\fix{-specify full namespace when using classes}\\
-\fix{-use this-> when referencing a class method or field}\\
+Several developers contribute to the Dax toolkit and we welcome others who
+are interested to also contribute to the project. To ensure readability and
+consistency in the code, we have adopted the following coding
+conventions. Many of these conventions are adapted from the coding
+conventions of the VTK project. This is because many of the developers are
+familiar with VTK coding and because we expect the Dax toolkit to have
+continual interaction with VTK.
+
+\begin{itemize}
+\item All code contributed to Dax must be compatible with Dax's BSD
+  license.
+\item Copyright notices should appear at the top of all source,
+  configuration, and text files. The statement should have the following
+  form:
+\small\begin{verbatim}
+//==========================================================================
+//
+//  Copyright (c) Kitware, Inc.
+//  All rights reserved.
+//  See LICENSE.txt for details.
+//
+//  This software is distributed WITHOUT ANY WARRANTY; without even
+//  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+//  PURPOSE.  See the above copyright notice for more information.
+//
+//  Copyright 2013 Sandia Corporation.
+//  Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
+//  the U.S. Government retains certain rights in this software.
+//
+//==========================================================================
+\end{verbatim}
+  The \textfilename{CopyrightStatement} checks all files for a similar
+  statement. The test will print out a suggested text that can be copied
+  and pasted to any file that has a missing copyright statement (with
+  appropriate replacement of comment prefix). Exceptions to this copyright
+  statemnet (for example, third-party files with different but compatible
+  statements) can be added to \textfilename{LICENSE.txt}.
+\item All include files should use include guards. starting right after the
+  copyright statement. The naming convention of the include guard macro is
+  that it should start with two underscores and be followed with the
+  pathname, starting from the top-level source code directory, with non
+  alphanumeric characters, such as \textcode{/} and \textcode{.} replaced
+  with underscores. The \textcode{\#endif} part of the guard at the bottom
+  of the file should include the guard name in a comment. For example, the
+  \daxheader{dax/cont}{ArrayHandle.h} header contains the guard
+  \begin{verbatim}
+#ifndef __dax_cont_ArrayHandle_h
+#define __dax_cont_ArrayHandle_h
+\end{verbatim}
+  at the top and
+  \begin{verbatim}
+#endif //__dax_cont_ArrayHandle_h
+\end{verbatim}
+  at the bottom.
+\item The Dax toolkit has several nested namespaces. The declaration of
+  each namespace should be on its own line, and the code inside the
+  namespace bracket should not be indented. The closing brace at the bottom
+  of the namespace should be documented with a comment identifying the
+  namespace. Namespaces can be grouped an ungrouped as desired. The
+  following is a valid use of namespaces.
+  \begin{verbatim}
+namespace dax {
+namespace cont {
+
+namespace detail {
+
+class InternalClass;
+
+} // namespace detail
+
+class ExposedClass;
+
+}
+} // namespace dax::cont
+\end{verbatim}
+\item Multple inheritance is not allowed in Dax classes.
+\item Any functional public class should be in its own header file with the
+  same name as the class. The file should be in a directory that
+  corresponds to the namespace the class is in. There are several
+  exceptions to this rule.
+  \begin{itemize}
+  \item Templated classes and template specialization often require the
+    implementation of the class to be broken into pieces. Sometimes a
+    specialization is placed in a header with a different name.
+  \item Many Dax toolkit features are not encapsulated in
+    classes. Functions may be collected by purpose or colocated with
+    associated class.
+  \item Although tags are technically classes, they do not behave as an
+    enumeration for the compiler. Multiple tags that make up this
+    enumeration are collected together.
+  \item Some classes, such as \dax{Tuple} are meant to behave as basic
+    types. These are sometimes collected together as if they were related
+    \textcode{typedef}s. The \daxheader{dax}{Types.h} header is a good
+    example of this.
+  \end{itemize}
+\item The indentation style can be characterized as the ``indented brace''
+  (a modified whitesmith) style. Indentations are two spaces, and the curly
+  brace (scope delimiter) is placed on the following line and indented
+  along with the code (i.e. the curly brace lines up with the code).
+\item Conditional clauses (including loop conditionals such as
+  \textcode{for} and \textcode{while}) must be in braces below the
+  conditional. That is, instead of
+  \begin{verbatim}
+if (test) { clause; }
+\end{verbatim}
+  use
+  \begin{verbatim}
+if (test)
+  {
+  clause;
+  }
+\end{verbatim}
+  The rational for this requirement is to make it obvious whether the
+  clause is executed when stepping through the code with the debugger. The
+  one exception to this rule is when the clause contains a control-flow
+  statement with obvious side effects such as \textcode{return} or
+  \textcode{break}. However, even if the clause contains a single statement
+  and is on the same line, the clause should be surrounded by braces.
+\item Use two space indentation.
+\item Tabs are not allowed. Only use spaces for indentation. No one can
+  agree on what the size of a tab stop is, so it is better to not use them
+  at all.
+\item There should be no trailing whitespace in any line.
+\item Use only alphanumeric characters in names. Use capitalization to
+  demarcate words within a name (camel case). The execption is preprocessor
+  macros and constant numbers that are, by convention, represented in all
+  caps and a single underscore to demarcate words.
+\item Namespace names are in all lowercase. They should be a single word
+  that designates its meaning.
+\item All class, method, member variable, and functions should start with a
+  capital letter. Local variables should start in lower case and then use
+  camel case. Exceptions can be made when such naming would conflict with
+  previously established conventions in other library. (For example,
+  \textcode{make\_Vector2} corresponds to \textcode{make\_pair} in the
+  standard template library.)
+\item Always spell out words in names; do not use abbreviations except in
+  cases where the shortened form is widely understood and a name in its own
+  right (e.g. OpenMP).
+\item Always use descriptive names in all identifiers, including local
+  variable names. Particularly avoid meaningless names of a few characters
+  (e.g. \textcode{x}, \textcode{foo}, or \textcode{tmp}) or numbered names
+  with no meaning to the number or order (e.g. \textcode{value1},
+  \textcode{value2},\ldots). Also avoid the meaningless for loop variable
+  names \textcode{i}, \textcode{j}, \textcode{k}, etc. Instead, use a name
+  that identifies what type of index is being referenced such as
+  \textcode{pointIndex}, \textcode{vertexIndex}, \textcode{componentIndex},
+  etc.
+\item Classes are documented with Doxygen-style comments before classes,
+  methods, and functions.
+\item Exposed classes should not have public instance variables outside of
+  exceptional situations. Access is given by convention through methods
+  with names starting with \textcode{Set} and \textcode{Get} or through
+  overloaded operators.
+\item References to classes and functions should be fully qualified with
+  the namespace. This makes it easier to establish classes and functions
+  from different packages and to find source and documentation for the
+  referenced class. As an exception, if one class references an internal or
+  detail class clearly associated with it, the reference can be shortened
+  to \textcode{internal::} or \textcode{detail::}.
+\item use \textcode{this->} inside of methods when accessing class methods
+  and instance variables to distinguish between local variables and
+  instance variables.
+\item Include statements should generally be in alphabetical order. They
+  can be grouped by package and type.
+\item Namespaces should not be brought into global scope or the scope of
+  any Dax package namespace with the ``using'' keyword. It should also be
+  avoided in class, method, and function scopes (fully qualified namespace
+  references are preferred).
+\item All code must be valid by the C++03 and C++11 specifications. It must
+  also compile on older compilers that support C++98. Code that uses
+  language features not available in C++98 must have a second
+  implementation that works around the limitations of C++98. The
+  \cmakevar{DAX\_FORCE\_ANSI} turns on a compiler check for ANSI
+  compatibility in gcc and clang compilers.
+\item Limit all lines to 80 characters whenever possible.
+\item New code must include regression tests that will run on the
+  dashboards. Generally a new class will have an associated ``UnitTest''
+  that will test the operation of the test directly. There may be other
+  tests necessary that exercise the operation with different components or
+  on different architectures.
+\item All code must compile and run without error or warning messages on
+  the nightly dashboards, which should include Windows, Mac, and Linux.
+\item Use \dax{Scalar} in lieu of \textcode{float} or \textcode{double} to
+  represent data for computation and use \dax{Id} in lieu of \textcode{int}
+  or \textcode{long} for data structure indices. This future-proofs code
+  against changes in precision of the architecture. The indices of
+  \dax{Tuple} are an exception. Using \textcode{int} to reference
+  \dax{Tuple} (and other related classes like \daxexec{CellField} and
+  \daxmath{Matrix}) indices are acceptable as it is unreasonable to make
+  these vectors longer than the precision of \textcode{int}.
+\item All functions and methods defined within the Dax toolkit should be
+  declared with \daxcontexport, \daxexecexport, or \daxexeccontexport.
+\end{itemize}
+
+We should note that although these conventions impose a strict statute on
+Dax coding, these rules (other than those involving licensing and
+copyright) are not ment to be dogmatic. Examples can be found in the
+existing code that break these conventions, particularly when the
+conventions stand in the way of readability (which is the point in having
+them in the first place). For example, it is often the case that it is more
+readable for a complicated \textcode{typedef} to stretch a few characters
+past 80 even if it pushes past the end of a display.
+

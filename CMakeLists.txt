@@ -12,6 +12,14 @@ set(images
   images/PackageHierarchy.pdf
   images/CellConnections.pdf
   images/WorkletExampleAnnotated.pdf
+  images/CellConnectionsHexahedron.pdf
+  images/CellConnectionsLine.pdf
+  images/CellConnectionsQuadrilateral.pdf
+  images/CellConnectionsTetrahedron.pdf
+  images/CellConnectionsTriangle.pdf
+  images/CellConnectionsVertex.pdf
+  images/CellConnectionsVoxel.pdf
+  images/CellConnectionsWedge.pdf
   images/TimingThresholdPointMask.pdf
   images/TimingThresholdNoPointMask.pdf
   images/TimingMCManifold.pdf

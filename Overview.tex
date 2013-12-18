@@ -261,6 +261,33 @@ discussed in Section~\ref{sec:ArrayHandle}.
 \section{Generic Scheduling}
 \label{sec:GenericScheduling}
 
-\fix{Schedule metaprograms section of PDAC2012 paper.}
+In addition to using the worklet motif to simplify the design of parallel
+algorithms, the Dax toolkit aims to relieve its users from the details of
+scheduling work in the execution environment. Although it is
+straightforward to write a parallel dispatching mechanism for a function
+with a fixed interface, the Dax worklets are designed to be a free-form
+expression of an algorithm. This free-form design necessitates a custom
+scheduler be built for each worklet.
 
-\fix{Reference to Section~\ref{sec:Scheduling}.}
+The Dax toolkit uses metatemplate programming to provide this custom
+scheduling. Each worklet declares its interface through the type of
+operation it does and a pair of \index{signature}\keyterm{signatures} that
+define the semantics of arguments from the control environment and to the
+execution environment operation. Figure~\ref{fig:WorkletDeclaration} shows
+an example of this declaration, and Section~\ref{sec:CreatingWorklets}
+provides details on how worklets are created.
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics[width=\linewidth]{images/WorkletExampleAnnotated}
+  \caption{An example of a worklet declaration.}
+  \label{fig:WorkletDeclaration}
+\end{figure}
+
+Worklets are invoked with an object called a
+\index{dispatcher}\keyterm{dispatcher}. The dispatcher uses the signatures
+provided by a worklet to determine the meaning of input meshes and arrays,
+transfer the necessary data to the execution environment, launch an
+appropriate amount of execution threads, and dereference the appropriate
+data for each invocation of the worklet. Section~\ref{sec:Dispatchers}
+describes using the dispatcher classes to invoke worklets.

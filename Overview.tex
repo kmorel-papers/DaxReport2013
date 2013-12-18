@@ -233,9 +233,15 @@ handle uses generic access to adapt to any layout.
 This generic access is achieved through a \keyterm{container}
 \index{array~container} object. The container provides an encapsulated
 interface around the data so that any necessary strides or offsets may be
-handled internally.
+handled internally. The relationship between array handles and containers
+is shown in Figure~\ref{fig:Containers}.
 
-\fix{Figure for containers?}
+\begin{figure}[htb]
+  \centering
+  \includegraphics{images/Containers}
+  \caption{Array handles, containers, and the underlying data storage.}
+  \label{fig:Containers}
+\end{figure}
 
 One interesting consequence of using a generic container object to manage
 data within an array handle is that the container can be defined

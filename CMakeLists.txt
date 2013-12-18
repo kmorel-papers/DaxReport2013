@@ -9,6 +9,7 @@ set(images
   SANDimages/snllineblk.pdf
   SANDimages/SANDbackground.png
   images/DaxDiagram.pdf
+  images/Containers.pdf
   images/PackageHierarchy.pdf
   images/CellConnections.pdf
   images/WorkletExampleAnnotated.pdf

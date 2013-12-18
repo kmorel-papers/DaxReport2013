@@ -3734,6 +3734,11 @@ that same location. Although the intention is to operate on some variable
 over the mesh, a \daxexec{WorkletMapField} actually be applied to any
 array.
 
+A \textidentifier{WorkletMapField} subclass is invoked with a
+\daxcont{DispatcherMapField}. This dispatcher has two template
+arguments. The first argument is the type of the worklet subclass. The
+second argument, which is optional, is a device adapter tag.
+
 A field map worklet has only one type of \controlsignature tag:
 \sigtag{Field}. This tag corresponds to a \daxcont{ArrayHandle} passed to
 invoke, and each invocation of the worklet gets or sets a single value in
@@ -3751,7 +3756,7 @@ demonstrated in the following example.
 \begin{daxexample}{Declaration and use of a field map worklet.}
 #include <dax/exec/WorkletMapField.h>
 #include <dax/cont/ArrayHandle.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherMapField.h>
 #include <dax/math/VectorAnalysis.h>
 
 class Magnitude : public dax::exec::WorkletMapField
@@ -3774,8 +3779,8 @@ InvokeMagnitude(dax::cont::ArrayHandle<dax::Vector3> input)
 {
   dax::cont::ArrayHandle<dax::Scalar> output;
 
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(Magnitude(), input, output);
+  dax::cont::DispatcherMapField<Magnitude> dispatcher;
+  dispatcher.Invoke(input, output);
 
   return output;
 }
@@ -3796,6 +3801,11 @@ single cell and creates a new field value at that location. The function
 has access to all field values local to that cell. So if an input is a
 point field, the operation will have access to all the values of that
 field.
+
+A \textidentifier{WorkletMapCell} subclass is invoked with a
+\daxcont{DispatcherMapCell}. This dispatcher has two template
+arguments. The first argument is the type of the worklet subclass. The
+second argument, which is optional, is a device adapter tag.
 
 A cell map worklet supports the following tags in the parameters of its
 \controlsignature.
@@ -3864,8 +3874,8 @@ integrations over the cell.
 
 #include <dax/exec/CellField.h>
 
-#include <dax/cont/Scheduler.h>
 #include <dax/cont/ArrayHandle.h>
+#include <dax/cont/DispatcherMapCell.h>
 #include <dax/cont/UniformGrid.h>
 
 class CellAverage : public dax::exec::WorkletMapCell
@@ -3909,8 +3919,8 @@ void InvokeCellAverage()
 
   dax::cont::ArrayHandle<dax::Scalar> output;
 
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(CellAverage(), grid, input, output);
+  dax::cont::DispatcherMapCell<CellAverage> dispatcher;
+  dispatcher.Invoke(grid, input, output);
 
   // Do something with output.
 }
@@ -3931,6 +3941,20 @@ number of output cells derived from each input cell. Each invocation of a
 \daxexec{WorkletGenerateTopology} produces exactly one cell, so the
 scheduler then invokes the generate topology worklet multiple times per
 cell if multiple cells are derived.
+
+A \textidentifier{WorkletGenerateTopology} subclass is invoked with a
+\daxcont{DispatcherGenerateTopology}. This dispatcher has three template
+arguments. The first argument is the type of the worklet subclass. The
+second argument is a type of array handle (defaults to
+\daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}) that holds the count
+of cells to be generated per input value. The third argument, which is
+optional, is a device adapter tag.
+
+Generate topology operations are used when one topology is derived from
+another's points. A generate topology is often proceeded by a field map or
+cell map that counts how many cells will be derived from each input
+cell. These counts are stored in an array and passed to the
+\daxcont{DispatcherGenerateTopology} that invokes the worklet.
 
 A generate topology worklet supports the following tags in the parameters
 of its \controlsignature.
@@ -3994,13 +4018,6 @@ of its \executionsignature.
   invocation instance of the worklet.
 \end{description}
 
-Generate topology operations are used when one topology is derived from
-another's points. A generate topology is often proceeded by a field map or
-cell map that counts how many cells will be derived from each input
-cell. These counts are stored in an array and held in a
-\daxcont{GenerateTopology} object that wraps the worklet and is passed to
-the scheduler. \fix{This should change soon.}
-
 The following example converts a uniform grid of voxels into the a
 collection of quadrilaterals that make up the faces. The worklet leverages
 the implicit topology of a uniform grid to ensure that each face is
@@ -4015,8 +4032,8 @@ represented exactly once.
 #include <dax/exec/WorkletMapCell.h>
 
 #include <dax/cont/ArrayHandle.h>
-#include <dax/cont/GenerateTopology.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherGenerateTopology.h>
+#include <dax/cont/DispatcherMapCell.h>
 #include <dax/cont/UniformGrid.h>
 #include <dax/cont/UnstructuredGrid.h>
 
@@ -4097,14 +4114,14 @@ InvokeExtraceFaces(const dax::cont::UniformGrid<> &inputGrid)
   dax::cont::ArrayHandle<dax::Tuple<unsigned char,6> > faces;
   dax::cont::ArrayHandle<dax::Id> counts;
 
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(CountFaceOut(dimensions), inputGrid, faces, counts);
+  dax::cont::DispatcherMapCell<CountFaceOut> countDispatcher(CountFaceOut(dimensions));
+  countDispatcher.Invoke(inputGrid, faces, counts);
 
   dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral> outputGrid;
 
-  dax::cont::GenerateTopology<ExtractFace> extractFace(counts);
-  extractFace.SetRemoveDuplicatePoints(false); // All points will be used.
-  scheduler.Invoke(extractFace, inputGrid, outputGrid, faces);
+  dax::cont::DispatcherGenerateTopology<ExtractFace> extractFaceDispatcher(counts);
+  extractFaceDispatcher.SetRemoveDuplicatePoints(false); // All points will be used.
+  extractFaceDispatcher.Invoke(inputGrid, outputGrid, faces);
 
   return outputGrid;
 }
@@ -4126,6 +4143,21 @@ homogeneous.) Each invocation of a \daxexec{WorkletInterpolatedCell}
 produces exactly one cell and its associated points, so the scheduler then
 invokes the interpolated cell worklet multiple times per cell if multiple
 cells are derived.
+
+A \textidentifier{WorkletInterpolatedCell} subclass is invoked with a
+\daxcont{DispatcherInterpolatedCell}. This dispatcher has three template
+arguments. The first argument is the type of the worklet subclass. The
+second argument is a type of array handle (defaults to
+\daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}) that holds the count
+of cells to be generated per input value. The third argument, which is
+optional, is a device adapter tag.
+
+Interpolated cell operations are used when one topology is derived from
+another, but the new topology can build cells in unconstrained ways. An
+interpolated cell is often proceeded by a field map or cell map that counts
+how many cells will be derived from each input cell. These counts are
+stored in an array and passed to the \daxcont{DispatcherInterpolatedCell}
+that invokes the worklet.
 
 An interpolated cell worklet supports the following tags in the parameters
 of its \controlsignature.
@@ -4199,14 +4231,6 @@ of its \executionsignature.
   invocation instance of the worklet.
 \end{description}
 
-Interpolated cell operations are used when one topology is derived from
-another, but the new topology can build cells in unconstrained ways. An
-interpolated cell is often proceeded by a field map or cell map that counts
-how many cells will be derived from each input cell. These counts are
-stored in an array and held in a \daxcont{GenerateInterpolatedCells} class
-that wraps the worklet and is passed to the scheduler. \fix{This should
-  change soon.}
-
 The following example performs a slice on a uniform grid using a plane that
 is aligned with the x axis (parallel with the y-z plane). With these
 constraints, we know that the intersection of every cell will be a
@@ -4221,8 +4245,8 @@ quadrilateral.
 #include <dax/exec/WorkletMapCell.h>
 
 #include <dax/cont/ArrayHandle.h>
-#include <dax/cont/GenerateInterpolatedCells.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherInterpolatedCell.h>
+#include <dax/cont/DispatcherMapCell.h>
 #include <dax/cont/UniformGrid.h>
 #include <dax/cont/UnstructuredGrid.h>
 
@@ -4284,17 +4308,14 @@ InvokeXSlice(const dax::cont::UniformGrid<> &inputGrid, dax::Scalar xIntercept)
 {
   dax::cont::ArrayHandle<dax::Id> counts;
 
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(CountXSliceOut(xIntercept),
-                   inputGrid,
-                   inputGrid.GetPointCoordinates(),
-                   counts);
+  dax::cont::DispatcherMapCell<CountXSliceOut> countDispatcher(CountXSliceOut(xIntercept));
+  countDispatcher.Invoke(inputGrid, inputGrid.GetPointCoordinates(), counts);
 
   dax::cont::UnstructuredGrid<dax::CellTagQuadrilateral> outputGrid;
 
-  dax::cont::GenerateInterpolatedCells<XSlice> slicer(count, XSlice(xIntercept));
-  extractFace.SetRemoveDuplicatePoints(true);
-  scheduler.Invoke(slicer, inputGrid, outputGrid, inputGrid.GetPointCoordinates());
+  dax::cont::DispatcherInterpolatedCell<XSlice> sliceDispatcher(count, XSlice(xIntercept));
+  sliceDispatcher.SetRemoveDuplicatePoints(true);
+  sliceDispatcher.Invoke(inputGrid, outputGrid, inputGrid.GetPointCoordinates());
 
   return outputGrid;
 }
@@ -4321,6 +4342,20 @@ field values per cell. Each invocation of a
 \daxexec{WorkletGenerateKeysValues} generates one set of keys and values,
 so the scheduler then invokes the worklet multiple times per cell if
 multiple key-value sets are needed.
+
+A \textidentifier{WorkletGenerateKeysValues} subclass is invoked with a
+\daxcont{DispatcherGenerateKeysValues}. This dispatcher has three template
+arguments. The first argument is the type of the worklet subclass. The
+second argument is a type of array handle (defaults to
+\daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}) that holds the count
+of cells to be generated per input value. The third argument, which is
+optional, is a device adapter tag.
+
+When invoking, the dispatcher needs to know how many key-values to produce
+per cell. These counts are stored in an array and passed to the
+\daxcont{DispatcherGenerateKeysValues} that invokes the worklet. If all
+cells produced the same number of key-values, then the implicit
+\daxcont{ArrayHandleConstant} can be used.
 
 Although the \daxexec{WorkletGenerateKeysValues} worklet is expected to
 generate keys and values which have distinct semantics, the worklet itself
@@ -4388,13 +4423,6 @@ parameters of its \executionsignature.
   invocation instance of the worklet.
 \end{description}
 
-When invoking, the scheduler needs to know how many key-values to produce
-per cell. These counts are stored in an array hand held in a
-\daxcont{GenerateKeysValues} object that wraps the worklet and is passed to
-the scheduler. \fix{This should change soon.} If all cells produced the
-same number of key-values, then the implicit \daxcont{ArrayHandleConstant}
-can be used.
-
 An example of defining and using a generate keys and values worklet is
 given in the next section in conjunction with a reduce keys and values
 worklet.
@@ -4413,12 +4441,19 @@ visualization algorithms. They allow an algorithm with a lot of
 interdependence to operate with lots of concurrency by storing and
 deferring the interdependent operation.
 
+A \textidentifier{WorkletReduceKeysValues} subclass is invoked with a
+\daxcont{DispatcherReduceKeysValues}. This dispatcher has three template
+arguments. The first argument is the type of the worklet subclass. The
+second argument is a type of array handle (defaults to
+\daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}) that holds the count
+of cells to be generated per input value. The third argument, which is
+optional, is a device adapter tag.
+
 When invoking a \daxexec{WorkletReduceKeysValues}, the scheduler groups
 values based on their associated keys and calls a single instance of the
-worklet for every unique key given. The keys are given to the scheduler
-through a \daxcont{ReduceKeysValues} object that wraps the
-worklet. \fix{This should change soon.} The values are passed as parameters
-and are automatically grouped by key before being passed to the worklet.
+worklet for every unique key given. The keys are given to the
+dispatcher. The values are passed as parameters and are automatically
+grouped by key before being passed to the worklet.
 
 A reduce keys and values worklet supports only one tags in the parameters
 of its \controlsignature: \sigtag{Value}. A \sigtag{Value} corresponds to a
@@ -4438,7 +4473,7 @@ index. \textidentifier{KeyGroup} objects also have an overloaded bracket
 operator so that they can be referenced like an array or tuple.
 
 A \sigtagmod{Value}{Out} corresponds to an output
-\daxcont{ArrayHandle}. The scheduler will resize this array to the number
+\daxcont{ArrayHandle}. The dispatcher will resize this array to the number
 of unique keys, and each instance of the worklet produces one entry into
 this array. This type of parameter is referenced in the \executionsignature
 simply with a numeric tag (such as \sigtagnum{2}).
@@ -4457,9 +4492,8 @@ values it touches.
 
 #include <dax/cont/ArrayHandle.h>
 #include <dax/cont/ArrayHandleConstant.h>
-#include <dax/cont/GenerateKeysValues.h>
-#include <dax/cont/ReduceKeysValues.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherGenerateKeysValues.h>
+#include <dax/cont/DispatcherReduceKeysValues.h>
 #include <dax/cont/UnstructuredGrid.h>
 
 class PointAverageGenerateKeys : public dax::exec::WorkletGenerateKeysValues
@@ -4512,17 +4546,16 @@ InvokePointAverage(dax::cont::UnstructuredGrid<CellTag> grid,
   dax::cont::ArrayHandle<dax::Id> keys;
   dax::cont::ArrayHandle<dax::Scalar> values;
 
-  dax::cont::Scheduler<> scheduler;
-
-  dax::cont::GenerateKeysValues<PointAverageGenerateKeys,CountArrayType>
-      generateKeys(counts);
-  scheduler.Invoke(generateKeys, grid, inputCellField, keys, values);
+  dax::cont::DispatcherGenerateKeysValues<PointAverageGenerateKeys,CountArrayType>
+      generateKeysDispatcher(counts);
+  generateKeysDispatcher.Invoke(grid, inputCellField, keys, values);
 
   dax::cont::ArrayHandle<dax::Scalar> outputPointField;
 
-  dax::cont::ReduceKeysValues<PointAverageReduceKeys,dax::cont::ArrayHandle<dax::Scalar> >
-      reduceKeys(keys);
-  scheduler.Invoke(reduceKeys, values, outputPointField);
+  dax::cont::DispatcherReduceKeysValues<
+      PointAverageReduceKeys,dax::cont::ArrayHandle<dax::Scalar> >
+        reduceKeysDispatcher(keys);
+  reduceKeysDispatcher.Invoke(values, outputPointField);
 
   return outputPointField;
 }

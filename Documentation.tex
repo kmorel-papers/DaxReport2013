@@ -2818,7 +2818,78 @@ The \daxcont{UnstructuredGrid} class provides the following features.
 \subsection{Dispatchers}
 \label{sec:Dispatchers}
 
-\fix{Will the scheduler classes be changed in time?}
+Worklets, both those provided by the Dax toolkit as listed in
+Section~\ref{sec:ProvidedWorklets} and ones created by a user as described
+in Section~\ref{sec:CreatingWorklets}, are instantiated in the control
+environment and run in the execution environment. This means that the
+control environment must have a means to \index{invoke}\keyterm{invoke}
+worklets that start running in the execution environment.
+
+This invocation is done through a set of
+\index{dispatcher}\keyterm{dispatcher} objects. A dispatcher object is an
+object in the control environment that has an instance of a worklet and can
+invoke that worklet with a set of arguments. There are multiple types of
+dispatcher objects, each corresponding to a type of worklet object. All
+dispatcher objects have at least two template parameters: the worklet class
+being invoked, which is always the first argument, and the device adapter
+tag, which is always the last argument and will be set to the default
+device adapter if not specified.
+
+All dispatcher classes have a method named \textcode{Invoke} that launches
+the worklet in the execution environment.  The arguments to
+\textcode{Invoke} must match those in the control signature of the worklet
+held by the dispatcher.
+
+The following is a list of the dispatchers defined in the Dax toolkit. The
+dispatcher classes corresponded to list of worklet types as specified in
+Section~\ref{sec:WorkletTypes} starting on
+page~\pageref{sec:WorkletTypes}. See that section for more details and
+examples of using these dispatcher classes.
+
+\begin{description}
+\item[\daxcont{DispatcherMapField}] The dispatcher used in conjunction with
+  a worklet that subclasses \daxexec{WorkletMapField}. The class has two
+  template arguments: the worklet type and the device adapter (optional).
+\item[\daxcont{DispatcherMapCell}] The dispatcher used in conjunction with
+  a worklet that subclasses \dax{WorkletMapCell}. The class has two
+  template arguments: the worklet type and the device adapter (optional).
+\item[\daxcont{DispatcherGenerateTopology}] The dispatcher used in
+  conjunction with a worklet that subclasses
+  \dax{WorkletGenerateTopology}. The class has three template arguments: the
+  worklet type, the type of array handle containing the count of the number
+  of cells being generated (optional), and the device adapter
+  (optional). The default type of the count array handle is
+  \daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}. An instance of the
+  count array handle must be provided in the constructor of
+  \daxcont{DispatcherGenerateTopology}.
+\item[\daxcont{DispatcherInterpolatedCell}] The dispatcher used in
+  conjunction with a worklet that subclasses
+  \dax{WorkletInterpolatedCell}. The class has three template arguments: the
+  worklet type, the type of array handle containing the count of the number
+  of cells being generated (optional), and the device adapter
+  (optional). The default type of the count array handle is
+  \daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}. An instance of the
+  count array handle must be provided in the constructor of
+  \daxcont{DispatcherInterpolatedCell}.
+\item[\daxcont{DispatcherGenerateKeysValues}] The dispatcher used in
+  conjunction with a worklet that subclasses
+  \dax{WorkletGenerateKeysValues}. The class has three template arguments:
+  the worklet type, the type of array handle containing the count of the
+  number of key-values being generated (optional), and the device adapter
+  (optional). The default type of the count array handle is
+  \daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}. An instance of the
+  count array handle must be provided in the constructor of
+  \daxcont{DispatcherGenerateKeysValues}.
+\item[\daxcont{DispatcherReduceKeysValues}] The dispatcher used in
+  conjunction with a worklet that subclasses
+  \dax{WorkletReduceKeysValues}. The class has three template arguments:
+  the worklet type, the type of array handle containing the keys
+  (optional), and the device adapter (optional). The default type of the
+  key array handle is
+  \daxcont{ArrayHandle}\textcode{<}\dax{Id}\textcode{>}. An instance of the
+  key array handle must be provided in the constructor of
+  \daxcont{DispatcherReduceKeysValues}.
+\end{description}
 
 \subsection{Timers}
 \label{sec:Timers}
@@ -2837,7 +2908,7 @@ asynchronously to operations in the control environment.
 
 To ensure that accurate timings can be made, Dax provides a \daxcont{Timer}
 class that is templated on the device adapter to provide an accurate
-measurement of operations that happen on the device. The timing starts with
+measurement of operations that happen on the device. The timing starts when
 the \textidentifier{Timer} is constructed. The time elapsed can be
 retrieved with a call to the \textcode{GetElapsedTime} method. This method
 will block until all operations in the execution environment complete so as
@@ -3674,6 +3745,7 @@ described in the following section on worklet types where appropriate.
 \index{execution~signature|)}
 
 \subsubsection{Worklet Types}
+\label{sec:WorkletTypes}
 
 \index{worklet types|(}
 

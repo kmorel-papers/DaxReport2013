@@ -2591,7 +2591,7 @@ void Elevation(const GridType &grid,
                dax::cont::ArrayHandle<dax::Scalar> &outPointElevation)
 {
   dax::cont::DispatcherMapField<dax::worklet::Elevation> dispatcher;
-  scheduler.Invoke(grid.GetPointCoordinates(), outPointElevation);
+  dispatcher.Invoke(grid.GetPointCoordinates(), outPointElevation);
 }
 \end{daxexample}
 
@@ -3936,10 +3936,10 @@ void InvokeCellAverage()
 \index{generate topology worklet|(}
 
 A worklet deriving from \daxexec{WorkletGenerateTopology} generates a cell
-connectivity. When invoked, the scheduler is given an array containing the
+connectivity. When invoked, the dispatcher is given an array containing the
 number of output cells derived from each input cell. Each invocation of a
 \daxexec{WorkletGenerateTopology} produces exactly one cell, so the
-scheduler then invokes the generate topology worklet multiple times per
+dispatcher then invokes the generate topology worklet multiple times per
 cell if multiple cells are derived.
 
 A \textidentifier{WorkletGenerateTopology} subclass is invoked with a
@@ -4137,10 +4137,10 @@ InvokeExtraceFaces(const dax::cont::UniformGrid<> &inputGrid)
 
 A worklet deriving from \daxexec{WorkletInterpolatedCell} generates a new
 geometry comprising both new points at new coordinates and cell connections
-among those points. When invoked, the scheduler is given an array
+among those points. When invoked, the dispatcher is given an array
 containing the number of cells produced. (The cell type must be
 homogeneous.) Each invocation of a \daxexec{WorkletInterpolatedCell}
-produces exactly one cell and its associated points, so the scheduler then
+produces exactly one cell and its associated points, so the dispatcher then
 invokes the interpolated cell worklet multiple times per cell if multiple
 cells are derived.
 
@@ -4340,7 +4340,7 @@ In operation the generate keys and values worklet works very much like a
 cell map worklet except that it is able to produce a variable amount of
 field values per cell. Each invocation of a
 \daxexec{WorkletGenerateKeysValues} generates one set of keys and values,
-so the scheduler then invokes the worklet multiple times per cell if
+so the dispatcher then invokes the worklet multiple times per cell if
 multiple key-value sets are needed.
 
 A \textidentifier{WorkletGenerateKeysValues} subclass is invoked with a
@@ -4449,7 +4449,7 @@ second argument is a type of array handle (defaults to
 of cells to be generated per input value. The third argument, which is
 optional, is a device adapter tag.
 
-When invoking a \daxexec{WorkletReduceKeysValues}, the scheduler groups
+When invoking a \daxexec{WorkletReduceKeysValues}, the dispatcher groups
 values based on their associated keys and calls a single instance of the
 worklet for every unique key given. The keys are given to the
 dispatcher. The values are passed as parameters and are automatically
@@ -4573,7 +4573,7 @@ InvokePointAverage(dax::cont::UnstructuredGrid<CellTag> grid,
 In the previous discussion, there is one \controlsignature tag that is
 available in all types of worklets that has not been mentioned: the
 \sigtag{ExecObject} tag. The \sigtag{ExecObject} means that the
-corresponding parameter to the scheduler's invoke method will be an
+corresponding parameter to the dispatcher's invoke method will be an
 execution object. It is an object that is passed directly to every
 invocation of the worklet. Execution objects are helpful for implementing
 search structures and lookup tables. They also provide a mechanism for
@@ -4610,7 +4610,8 @@ the triangle quality based on its sides.
 
 #include <dax/cont/ArrayHandle.h>
 #include <dax/cont/ErrorControlBadValue.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherMapCell.h>
+#include <dax/cont/DispatcherMapField.h>
 #include <dax/cont/UniformGrid.h>
 #include <dax/cont/UnstructuredGrid.h>
 
@@ -4736,8 +4737,8 @@ private:
     grid.SetSpacing(dax::make_Vector3(this->Spacing,this->Spacing,this->Spacing));
     grid.SetOrigin(dax::make_Vector3(0,0,0));
 
-    dax::cont::Scheduler<> scheduler;
-    scheduler.Invoke(BuildTriangleQualityArray(), grid.GetPointCoordinates(), this->Array);
+    dax::cont::DispatcherMapField<BuildTriangleQualityArray> dispatcher;
+    dispatcher.Invoke(grid.GetPointCoordinates(), this->Array);
   }
 };
 
@@ -4764,12 +4765,11 @@ ComputeTriangleQuality(dax::cont::UnstructuredGrid<dax::CellTagTriangle> grid,
 {
   dax::cont::ArrayHandle<dax::Scalar> quality;
 
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(TriangleQualityWorklet(),
-                   grid,
-                   grid.GetPointCoordinates(),
-                   triangleQualityLookup.GetExecutionObject(),
-                   quality);
+  dax::cont::DispatcherMapCell<TriangleQualityWorklet> dispatcher;
+  dispatcher.Invoke(grid,
+                    grid.GetPointCoordinates(),
+                    triangleQualityLookup.GetExecutionObject(),
+                    quality);
 
   return quality;
 }
@@ -4809,8 +4809,8 @@ that invoked it.
 
 \begin{daxexample}[ex:ExecutionErrors]{Raising an error in the execution environment.}
 #include <dax/cont/ArrayHandle.h>
+#include <dax/cont/DispatcherMapField.h>
 #include <dax/cont/ErrorExecution.h>
-#include <dax/cont/Scheduler.h>
 
 #include <dax/exec/WorkletMapField.h>
 
@@ -4839,10 +4839,10 @@ InvokeSquareRoot(dax::cont::ArrayHandle<dax::Scalar> input)
 {
   dax::cont::ArrayHandle<dax::Scalar> output;
 
-  dax::cont::Scheduler<> scheduler;
   try
     {
-    scheduler.Invoke(SquareRoot(), input, output);
+    dax::cont::DispatcherMapField<SquareRoot> dispatcher;
+    dispatcher.Invoke(input, output);
     }
   catch (dax::cont::ErrorExecution error)
   {
@@ -5391,7 +5391,7 @@ following items for all known cell tags.
 
 When a worklet scheduled on cells is operating on a point field (generally
 identified with a \sigtagmod{Field}{Point} tag in the \controlsignature as
-described in Section~\ref{sec:ControlSignature}), then the Dax scheduler
+described in Section~\ref{sec:ControlSignature}), then the Dax dispatcher
 pulls all the relevant field values and passes them to the worklet in a
 \daxexec{CellField} object. \textidentifier{CellField} is templated first
 on the field data type and second on the cell tag. The

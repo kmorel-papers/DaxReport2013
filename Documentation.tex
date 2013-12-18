@@ -1143,19 +1143,20 @@ in Dax.
   \daxheader{dax/tbb/cont}{DeviceAdapterTBB.h}.
 \end{description}
 
-The following example schedules the elevation worklet much like shown in
+The following example invokes the elevation worklet much like shown in
 Example~\ref{ex:Elevation} on page~\pageref{ex:Elevation} but also
 specifies using the Intel Threading Building blocks device adapter.
 \index{Intel Threading Building Blocks} \index{TBB}
-In particular, consider the template parameter of the \daxcont{Scheduler}
-class.
+In particular, consider the template parameter of the
+\daxcont{DispatcherMapField} class.
 \begin{daxexample}{Calling the Elevation worklet with a specific device adapter.}
 dax::worklet::Elevation elevation(dax::make_Vector3(-1.0, 0.0, 0.0),
                                   dax::make_Vector3(1.0, 0.0, 0.0),
                                   dax::make_Vector2(-1.0, 1.0));
 
-dax::cont::Scheduler<dax::tbb::cont::DeviceAdapterTagTBB> scheduler;
-scheduler.Invoke(elevation, grid.GetPointCoordinates(), outPointElevation);
+dax::cont::DispatcherMapField<dax::worklet::Elevation, dax::tbb::cont::DeviceAdapterTagTBB>
+    dispatcher(elevation);
+dispatcher.Invoke(grid.GetPointCoordinates(), outPointElevation);
 \end{daxexample}
 
 When structuring your code to always specify a particular device adapter,
@@ -1174,15 +1175,13 @@ that can use the default. The following example has a (rather artificial)
 declaration of a helper class for executing the elevation worklet.
 \begin{daxexample}{Declaring a template with a default device adapter.}
 template<typename DeviceAdapter = DAX_DEFAULT_DEVICE_ADAPTER_TAG>
-class MyElevationScheduler
+class MyElevationDispatcher
 {
 public:
-  void DoSchedule()
+  void DoInvoke()
   {
-    dax::cont::Scheduler<DeviceAdapter> scheduler;
-    scheduler.Invoke(dax::Worklet::Elevation(),
-                     this->Grid.GetPointCoordinates(),
-                     this->OutPointElevation);
+    dax::cont::DispatcherMapField<dax::Worklet::Elevation,DeviceAdapter> dispatcher;
+    dispatcher.Invoke(this->Grid.GetPointCoordinates(), this->OutPointElevation);
 \end{daxexample}
 
 \index{device~adapter|)}
@@ -1883,8 +1882,8 @@ void GetElevationAirPressure(const GridType &grid, FooFieldsDeque *fields)
   ArrayHandleFooPressure pressureHandle(fields);
 
   // Run the elevation worklet.
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(elevation, grid.GetPointCoordinates(), pressureHandle);
+  dax::cont::DispatcherMapField<dax::worklet::Elevation> dispatcher(elevation);
+  dispatcher.Invoke(grid.GetPointCoordinates(), pressureHandle);
 
   // Make sure values are flushed back to the control environment.
   pressureHandle.GetPortalConstControl();
@@ -2591,10 +2590,8 @@ DAX_CONT_EXPORT
 void Elevation(const GridType &grid,
                dax::cont::ArrayHandle<dax::Scalar> &outPointElevation)
 {
-  dax::cont::Scheduler<> scheduler;
-  scheduler.Invoke(dax::worklet::Elevation(),
-                   grid.GetPointCoordinates(),
-                   outPointElevation);
+  dax::cont::DispatcherMapField<dax::worklet::Elevation> dispatcher;
+  scheduler.Invoke(grid.GetPointCoordinates(), outPointElevation);
 }
 \end{daxexample}
 
@@ -2892,11 +2889,10 @@ grid.SetOrigin(dax::make_Vector3(0.0, 0.0, 0.0));
 grid.SetSpacing(dax::make_Vector3(1.0, 1.0, 1.0));
 
 dax::cont::ArrayHandle<dax::Scalar> results;
-dax::cont::Scheduler<> scheduler;
-dax::worklet::Elevation worklet;
+dax::cont::DispatchMapField<dax::worklet::Elevation> dispatcher;
 
 dax::cont::Timer<> timer;
-scheduler.Invoke(worklet, grid.GetPointCoordinates(), results);
+dispatcher.Invoke(grid.GetPointCoordinates(), results);
 // This call makes sure data is pulled back to the host in a host/device architecture.
 results.GetPortalConstControl();
 dax::Scalar elapsedTime = timer.GetElapsedTime();
@@ -3633,8 +3629,8 @@ A worklet in Dax is most simply a functor that operates on an element of
 data. Thus, it is a \textcode{class} or \textcode{struct} that has an
 overloaded parenthesis operator (which must be declared \textcode{const}
 for thread safety). It also must inherit from one of the predefined
-abstract worker class, which will allow the Dax toolkit to load the correct
-scheduler. Finally, it must declare a pair of
+abstract worklet classes, which will declare the correct dispatcher to use
+when invoking the worklet. Finally, it must declare a pair of
 \index{signature}\keyterm{signatures} that define what information must be
 presented when invoking the worklet and how this information gets passed to
 each worklet invocation. Figure~\ref{fig:WorkletExampleAnnotated}
@@ -3654,10 +3650,10 @@ demonstrates all of the required components of a worklet.
 
 The control signature of a worklet is the \textcode{typedef} of a function
 prototype named \controlsignature. The function prototype matches the
-calling specification used with the scheduler invoke function.
+calling specification used with the dispatcher invoke function.
 
 The return type of the function prototype is always \textcode{void} because
-the scheduler invoke functions do not return values. The parameters of the
+the dispatcher invoke functions do not return values. The parameters of the
 function prototype are \index{signature tags}\keyterm{tags} that identify
 the type of data that is expected to be passed to invoke. For example, a
 \sigtag{Field} tag declares that the worklet will operate on field data,
